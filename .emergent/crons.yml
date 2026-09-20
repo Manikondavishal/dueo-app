@@ -1,0 +1,16 @@
+crons:
+  - name: invite-reminders
+    description: "Sends a day-5 reminder email to approved leads who have not used their invite"
+    cron: "0 4 * * *"
+    endpoint: "{{BASE_URL}}/api/cron/reminders"
+    method: POST
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    enabled: true
+  - name: audit-anchor
+    description: "Stores a daily digest of all audit chain heads (runs 00:10 IST)"
+    cron: "10 0 * * *"
+    timezone: "Asia/Kolkata"
+    endpoint: "{{BASE_URL}}/api/cron/audit-anchor"
+    method: POST
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    enabled: true

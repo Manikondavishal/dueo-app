@@ -1,0 +1,72 @@
+/* Landing-page specific layout (responsive: 390 / 768 / 1440). */
+.ld-root { width: 100%; overflow-x: hidden; }
+.ld-section { padding: 24px; }
+.ld-h1 { font-size: clamp(56px, 12vw, 118px); line-height: .9; }
+.ld-h1-accent { font-size: clamp(64px, 14vw, 136px); line-height: .95; }
+
+.ld-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 68px; padding: 0 12px 0 24px; border-radius: 999px; background: #fff; }
+.ld-nav-links { display: flex; align-items: center; gap: 36px; font-size: 16px; font-weight: 500; }
+
+.ld-hero { position: relative; border-radius: 48px; background: var(--lilac); overflow: hidden; padding: 24px; }
+.ld-hero-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; align-items: start; padding: 60px 48px 40px; }
+.ld-hero-copy { display: flex; flex-direction: column; gap: 24px; }
+.ld-badge { display: inline-flex; align-self: flex-start; align-items: center; gap: 10px; height: 36px; padding: 0 16px; border-radius: 999px; background: #fff; font-size: 14px; font-weight: 600; }
+.ld-hero-sub { display: flex; flex-direction: column; gap: 12px; max-width: 540px; font-size: clamp(17px, 2vw, 21px); line-height: 1.45; color: var(--ink-soft); }
+.ld-hero-art { position: relative; min-height: 560px; display: flex; justify-content: center; }
+.ld-peek { position: absolute; left: 0; top: 0; z-index: 1; }
+.ld-phone { position: relative; z-index: 2; width: 340px; max-width: 90%; margin-top: 60px; border-radius: 48px; background: #fff; padding: 22px 18px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 40px 70px -30px rgba(22,19,15,.4); }
+.ld-phone-body { flex-grow: 1; border-radius: 30px; background: var(--cream); padding: 16px 14px; display: flex; flex-direction: column; gap: 12px; }
+.ld-note { position: absolute; left: 0; bottom: 20px; z-index: 3; width: 250px; max-width: 70%; border-radius: 26px; background: #fff; padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 24px 40px -20px rgba(22,19,15,.35); }
+.ld-hero-chips { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 48px 40px; }
+.ld-chip { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px; border-radius: 999px; background: #fff; font-size: 14px; font-weight: 600; }
+
+.ld-h2 { font-size: clamp(40px, 8vw, 80px); line-height: .98; max-width: 640px; }
+.ld-pain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; padding: 60px 76px 0; }
+.ld-bubbles { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+.ld-bubble { border-radius: 26px 26px 26px 8px; padding: 16px 24px; font-size: clamp(18px, 2.2vw, 24px); font-weight: 700; letter-spacing: -0.01em; }
+.ld-pain-cta { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 64px 24px 40px; }
+
+.ld-shield { border-radius: 48px; background: var(--sky); padding: 72px; display: flex; justify-content: space-between; gap: 40px; overflow: hidden; flex-wrap: wrap; }
+.ld-shield-copy { flex: 1 1 500px; display: flex; flex-direction: column; gap: 20px; }
+.ld-p { font-size: 20px; line-height: 1.5; color: var(--ink-soft); max-width: 600px; }
+.ld-tag { font-size: clamp(28px, 4vw, 40px); line-height: 1; border-radius: 16px; padding: 8px 16px; }
+.ld-shield-card-wrap { position: relative; flex: 1 1 380px; padding-top: 70px; }
+.ld-shield-char { position: absolute; right: 0; top: -14px; z-index: 2; }
+.ld-shield-card { background: #fff; border-radius: 40px; padding: 36px 32px 28px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 40px 60px -36px rgba(22,19,15,.4); }
+.sd { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+.sd-done { background: #7FD0A3; color: #16130F; }
+.sd-now { background: #F5D642; color: #16130F; }
+.sd-todo { background: #EFE9DC; color: #57524A; }
+
+.ld-intel { border-radius: 48px; background: #fff; padding: 72px; display: flex; flex-direction: column; gap: 40px; }
+.ld-intel-grid { display: grid; grid-template-columns: 460px 1fr; gap: 24px; align-items: stretch; }
+.ld-intel-panel { border-radius: 40px; padding: 40px 48px; transition: background .3s; display: flex; align-items: center; min-height: 260px; }
+.ld-move-tag { align-self: flex-start; background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.ld-intel-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+.ld-ch { display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 999px; font-size: 16px; font-weight: 600; }
+
+.ld-control { border-radius: 48px; background: var(--butter); padding: 56px 72px; display: flex; justify-content: space-between; align-items: center; gap: 40px; flex-wrap: wrap; }
+.ld-control-card { min-height: 260px; border-radius: 36px; background: #fff; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+
+.ld-final { position: relative; border-radius: 48px; background: var(--mint); overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; text-align: center; padding: 80px 24px; }
+
+.ld-footer { height: 100px; padding: 0 clamp(24px, 5vw, 72px); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+@media (max-width: 767px) {
+  .ld-section { padding: 12px; }
+  .ld-hero { padding: 12px; }
+  .ld-hero-grid { grid-template-columns: 1fr; padding: 20px; gap: 32px; }
+  .ld-hero-art { min-height: 520px; }
+  .ld-hero-chips { padding: 0 20px 24px; }
+  .ld-nav-links { display: none; }
+  .ld-nav { padding: 0 8px 0 16px; }
+  .ld-pain-grid { grid-template-columns: 1fr; padding: 24px 20px 0; }
+  .ld-shield { padding: 32px 20px; }
+  .ld-intel { padding: 28px 20px; }
+  .ld-intel-grid { grid-template-columns: 1fr; }
+  .ld-control { padding: 28px 20px; }
+}
+@media (min-width: 768px) and (max-width: 1100px) {
+  .ld-hero-grid { grid-template-columns: 1fr; }
+  .ld-intel-grid { grid-template-columns: 1fr; }
+}

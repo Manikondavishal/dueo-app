@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dueo — Today</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Geist','Noto Sans','Segoe UI',system-ui,sans-serif;color:#16130F;background:#FAF6EE;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,p{margin:0}
+.disp{font-family:'Bricolage Grotesque','Geist',system-ui,sans-serif;letter-spacing:-0.04em;font-weight:800}
+.mono{font-family:'Geist Mono',ui-monospace,Menlo,monospace}
+.num{font-variant-numeric:tabular-nums}
+.cur{font-size:.56em;font-weight:700;vertical-align:.42em;margin-right:.06em;letter-spacing:0}
+.pill{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:48px;padding:0 22px;border-radius:999px;border:1.5px solid transparent;font-family:inherit;font-size:16px;font-weight:600;line-height:1;cursor:pointer;box-sizing:border-box;white-space:nowrap;transition:transform .18s cubic-bezier(.2,.8,.2,1),background .18s}
+.pill:active{transform:scale(.97)}
+.pill-k{background:#16130F;color:#FFFFFF}
+.pill-k:hover{background:#34302A;transform:translateY(-1px)}
+.pill-w{background:#FFFFFF;color:#16130F;border-color:#16130F}
+.pill-w:hover{background:#FFF1B8;transform:translateY(-1px)}
+.sm{height:40px;padding:0 18px;font-size:14px}
+a:focus-visible,button:focus-visible{outline:3px solid #16130F;outline-offset:3px}
+.logo{width:34px;height:34px;background:#A9A0F0;border-radius:58% 42% 52% 48%/50% 55% 45% 50%;position:relative;flex-shrink:0}
+.logo::before{content:"";position:absolute;left:10px;top:13px;width:4px;height:4px;border-radius:50%;background:#16130F;box-shadow:10px 0 0 #16130F}
+.logo::after{content:"";position:absolute;left:12px;top:19px;width:10px;height:5px;border-bottom:2px solid #16130F;border-radius:0 0 10px 10px}
+.nav{display:flex;align-items:center;gap:12px;height:46px;padding:0 16px;border-radius:999px;font-size:16px;font-weight:500;color:#2E2A24;transition:background .15s}
+.nav:hover{background:#F0EADB}
+.nav-on{background:#16130F;color:#FFFFFF;font-weight:600}
+.nav-on:hover{background:#16130F}
+.tg{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:14px;font-size:13px;font-weight:700}
+.tg-coral{background:#FFD3C4;color:#A83A10}
+.tg-butter{background:#FCEFA8;color:#6F5500}
+.tg-sky{background:#CFE3F8;color:#1B4A8C}
+.st{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:15px;font-size:14px;font-weight:700}
+.st-lilac{background:#DDD9FA;color:#3B31A8}
+.st-butter{background:#FCEFA8;color:#6F5500}
+.pn-coral{background:#FFD3C4}
+.pn-butter{background:#FCEFA8}
+.pn-sky{background:#CFE3F8}
+.av{width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0}
+.av-l{background:#A9A0F0;border-radius:58% 42% 52% 48%/50% 55% 45% 50%}
+.av-l2{background:#A9A0F0;border-radius:44% 56% 46% 54%/56% 46% 54% 44%}
+.av-b{background:#F5D642;border-radius:50% 50% 46% 54%/56% 44% 56% 44%}
+.av-b2{background:#F5D642;border-radius:60% 40% 55% 45%/45% 55% 45% 55%}
+.hrow{display:grid;grid-template-columns:48px 190px 130px 190px minmax(0,1fr) 36px;align-items:center;column-gap:18px;padding:16px 28px;border-top:1.5px solid #F0EADB;transition:background .15s}
+a.hrow:hover{background:#FBF8F0}
+.arw{width:36px;height:36px;border-radius:50%;border:1.5px solid #E7E0D0;display:flex;align-items:center;justify-content:center;font-size:16px;transition:transform .2s,background .2s,color .2s}
+a.hrow:hover .arw{transform:translateX(3px);background:#16130F;color:#FFFFFF;border-color:#16130F}
+.bob{animation:bob 4.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@media (prefers-reduced-motion:reduce){.bob{animation:none}}
+/* motion refinement */
+.logo{animation:morph 12s ease-in-out infinite}
+.morph{animation:morph 13s ease-in-out infinite}
+@keyframes morph{0%,100%{border-radius:58% 42% 52% 48%/50% 55% 45% 50%}33%{border-radius:44% 56% 46% 54%/56% 46% 54% 44%}66%{border-radius:52% 48% 58% 42%/44% 56% 44% 56%}}
+.av{transition:border-radius .6s cubic-bezier(.2,.9,.3,1.2)}
+a.hrow:hover .av{border-radius:38% 62% 50% 50%/50% 50% 50% 50%}
+.bob{animation:bob 6s cubic-bezier(.45,.05,.55,.95) infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(var(--r,0deg)) scale(1)}50%{transform:translateY(-10px) rotate(calc(var(--r,0deg) + 2.5deg)) scale(1.02)}}
+.bob svg{transition:transform .45s cubic-bezier(.2,.9,.3,1.4)}
+.bob:hover svg{transform:scale(1.08) rotate(-4deg)}
+.pop{animation:pop .65s cubic-bezier(.2,.9,.3,1.3) backwards}
+@keyframes pop{0%{transform:scale(.6) rotate(-10deg);opacity:0}100%{transform:none;opacity:1}}
+.blink{transform-box:fill-box;transform-origin:center;animation:blink 5.8s infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+.rise{animation:rise .6s cubic-bezier(.2,.8,.2,1) backwards}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.logo,.morph,.bob,.pop,.blink,.rise{animation:none}}
+</style>
+</helmet>
+<div style="width:1440px;height:1420px;display:flex;background:#FAF6EE">
+
+<aside style="width:260px;flex-shrink:0;box-sizing:border-box;padding:28px 20px;display:flex;flex-direction:column;justify-content:space-between">
+<div style="display:flex;flex-direction:column;gap:28px">
+<a href="Landing.dc.html" style="display:flex;align-items:center;gap:10px;padding:0 8px"><span class="logo"></span><span class="disp" style="font-size:28px">dueo</span></a>
+<div style="display:flex;align-items:center;gap:10px;height:52px;padding:0 14px;border-radius:999px;background:#FFFFFF"><span class="disp" style="width:30px;height:30px;border-radius:50%;background:#DDD9FA;display:flex;align-items:center;justify-content:center;font-size:15px">M</span><span style="font-size:15px;font-weight:600">Meridian Studio</span></div>
+<nav aria-label="Main" style="display:flex;flex-direction:column;gap:4px">
+<a class="nav nav-on" href="Main.dc.html" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>Today</a>
+<a class="nav" href="Invoices.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg>Invoices</a>
+<a class="nav" href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-4 3-6 6.5-6s6.5 2 6.5 6"/><circle cx="17.5" cy="9" r="2.5"/></svg>Clients</a>
+<a class="nav" href="Shield.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V6z"/></svg>Shield</a>
+</nav>
+</div>
+<div style="background:#FFFFFF;border-radius:28px;padding:18px;display:flex;flex-direction:column;gap:12px">
+<div style="font-size:13px;font-weight:700">Channels</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:14px"><span style="width:10px;height:10px;border-radius:50%;background:#7FD0A3;flex-shrink:0"></span><span style="flex-grow:1">WhatsApp</span><span style="color:#57524A;font-size:13px">Connected</span></div>
+<div style="display:flex;align-items:center;gap:8px;font-size:14px"><span style="width:10px;height:10px;border-radius:50%;background:#7FD0A3;flex-shrink:0"></span><span style="flex-grow:1">Email</span><span style="color:#57524A;font-size:13px">Connected</span></div>
+<div style="display:flex;align-items:center;gap:8px;font-size:14px"><span style="width:10px;height:10px;border-radius:50%;background:#CFC8B6;flex-shrink:0"></span><span style="flex-grow:1">Phone</span><span style="color:#57524A;font-size:13px">Not connected</span></div>
+</div>
+</aside>
+
+<main style="flex-grow:1;min-width:0;box-sizing:border-box;padding:36px 48px 48px 24px">
+<div style="width:100%;max-width:1100px;display:flex;flex-direction:column;gap:36px">
+
+<div style="display:flex;align-items:flex-end;justify-content:space-between">
+<div style="display:flex;align-items:center;gap:20px">
+<h1 class="disp" style="font-size:72px;line-height:.9">Today</h1>
+<span style="display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:999px;background:#FFFFFF;font-size:15px;font-weight:600;margin-top:16px">Sun 20 Sep</span>
+</div>
+<a class="pill pill-k" href="AddInvoice.dc.html">Add invoice +</a>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px">
+<div style="position:relative;overflow:hidden;height:164px;box-sizing:border-box;border-radius:32px;background:#DDD9FA;padding:24px;display:flex;flex-direction:column;justify-content:space-between">
+<div class="morph" style="position:absolute;right:-30px;bottom:-50px;width:150px;height:150px;border-radius:50% 45% 55% 50%;background:#E9E6FC;animation-delay:-11s"></div>
+<div style="position:relative;font-size:15px;font-weight:600">Outstanding</div>
+<div style="position:relative;display:flex;align-items:baseline;justify-content:space-between"><span class="disp num" style="font-size:52px;line-height:1"><span class="cur">₹</span>7,48,400</span><span style="font-size:14px;color:#2E2A24">7 invoices</span></div>
+</div>
+<div style="position:relative;overflow:hidden;height:164px;box-sizing:border-box;border-radius:32px;background:#FFD3C4;padding:24px;display:flex;flex-direction:column;justify-content:space-between">
+<div class="morph" style="position:absolute;right:-30px;bottom:-50px;width:150px;height:150px;border-radius:45% 55% 50% 50%;background:#FFE1D6;animation-delay:-1s"></div>
+<div style="position:relative;font-size:15px;font-weight:600">Needs you</div>
+<div style="position:relative;display:flex;align-items:baseline;justify-content:space-between"><span class="disp num" style="font-size:52px;line-height:1">3</span><span class="num" style="font-size:14px;color:#2E2A24">₹2,27,500</span></div>
+</div>
+<div style="position:relative;overflow:hidden;height:164px;box-sizing:border-box;border-radius:32px;background:#FCEFA8;padding:24px;display:flex;flex-direction:column;justify-content:space-between">
+<div class="morph" style="position:absolute;right:-30px;bottom:-50px;width:150px;height:150px;border-radius:55% 45% 50% 50%;background:#FDF5C6;animation-delay:-2s"></div>
+<div style="position:relative;font-size:15px;font-weight:600">Promises due today</div>
+<div style="position:relative;display:flex;align-items:baseline;justify-content:space-between"><span class="disp num" style="font-size:52px;line-height:1">1</span><span class="num" style="font-size:14px;color:#2E2A24">₹1,45,000</span></div>
+</div>
+</div>
+
+<section style="display:flex;flex-direction:column;gap:16px">
+<h2 class="disp" style="font-size:32px;line-height:1">Needs you</h2>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px">
+<sc-for list="{{ needs }}" as="n" hint-placeholder-count="3">
+<div style="background:#FFFFFF;border-radius:36px;padding:20px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;justify-content:space-between"><span class="{{ n.tagCls }}">{{ n.tag }}</span><span class="mono" style="font-size:13px;color:#57524A">{{ n.inv }}</span></div>
+<div class="disp" style="font-size:30px;line-height:1.02;padding:0 4px">{{ n.client }}</div>
+<div style="font-size:15px;line-height:1.45;color:#2E2A24;min-height:88px;padding:0 4px">{{ n.reason }}</div>
+<div class="{{ n.panel }}" style="position:relative;overflow:hidden;height:170px;border-radius:26px;display:flex;align-items:flex-end;padding:18px 20px;box-sizing:border-box">
+<span class="disp num" style="position:relative;font-size:44px;line-height:1"><span class="cur">₹</span>{{ n.amount }}</span>
+<div class="bob" style="position:absolute;right:-10px;top:8px;width:150px;height:150px">
+<sc-if value="{{ n.c0 }}" hint-placeholder-val="{{ true }}">
+<svg class="pop" viewBox="0 0 200 200" width="150" height="150" aria-hidden="true"><path fill="#FF9C7D" d="M166 100C172 103 184 110 184 113C183 117 170 119 163 120C156 122 143 118 142 121C140 124 150 132 153 139C156 145 163 158 160 160C158 163 145 156 139 153C132 150 124 140 121 142C118 143 122 156 120 163C119 170 117 183 113 184C110 184 103 172 100 166C97 160 96 147 93 146C89 146 85 158 80 163C74 168 64 177 61 176C58 174 60 160 61 153C62 146 69 136 67 133C64 131 54 138 47 139C40 140 26 142 24 139C23 136 32 126 37 120C42 115 54 111 54 107C53 104 40 103 34 100C28 97 16 90 16 87C17 83 30 81 37 80C44 78 57 82 58 79C60 76 50 68 47 61C44 55 37 42 40 40C42 37 55 44 61 47C68 50 76 60 79 58C82 57 78 44 80 37C81 30 83 17 87 16C90 16 97 28 100 34C103 40 104 53 107 54C111 54 115 42 120 37C126 32 136 23 139 24C142 26 140 40 139 47C138 54 131 64 133 67C136 69 146 62 153 61C160 60 174 58 176 61C177 64 168 74 163 80C158 85 146 89 146 93C147 96 160 97 166 100Z"/><ellipse data-hl="1" cx="66" cy="52" rx="26" ry="13" fill="#fff" opacity=".28" transform="rotate(-24 66 52)"></ellipse><g class="blink"><circle cx="80" cy="96" r="7" fill="#16130F"/></g><g class="blink"><circle cx="120" cy="96" r="7" fill="#16130F"/></g><ellipse cx="100" cy="124" rx="6" ry="8" fill="#16130F"/></svg>
+</sc-if>
+<sc-if value="{{ n.c1 }}" hint-placeholder-val="{{ false }}">
+<svg class="pop" viewBox="0 0 200 200" width="150" height="150" aria-hidden="true"><path fill="#F5D642" d="M169 100C169 113 167 128 165 138C162 148 158 155 153 161C147 167 142 172 133 175C124 178 111 180 100 180C89 180 76 178 67 175C58 172 53 167 47 161C42 155 38 148 35 138C33 128 31 113 31 100C31 87 33 72 35 62C38 52 42 45 47 39C53 33 58 28 67 25C76 22 89 20 100 20C111 20 124 22 133 25C142 28 147 33 153 39C158 45 162 52 165 62C167 72 169 87 169 100Z"/><ellipse data-hl="1" cx="66" cy="52" rx="26" ry="13" fill="#fff" opacity=".28" transform="rotate(-24 66 52)"></ellipse><path d="M70 100q8 8 16 0M114 100q8 8 16 0M92 124h16" fill="none" stroke="#16130F" stroke-width="5" stroke-linecap="round"/><circle cx="62" cy="114" r="7" fill="#FF6B57" opacity=".35"/><circle cx="138" cy="114" r="7" fill="#FF6B57" opacity=".35"/></svg>
+</sc-if>
+<sc-if value="{{ n.c2 }}" hint-placeholder-val="{{ false }}">
+<svg class="pop" viewBox="0 0 200 200" width="150" height="150" aria-hidden="true"><path fill="#8DBDF0" d="M176 100C178 105 182 111 182 116C182 121 180 127 177 131C173 135 166 138 161 140C156 143 150 143 145 145C141 147 137 150 134 153C130 156 128 161 123 165C119 169 114 174 109 175C103 177 97 177 91 175C86 174 81 169 77 165C72 161 70 156 66 153C63 150 59 147 55 145C50 143 44 143 39 140C34 138 27 135 23 131C20 127 18 121 18 116C18 111 22 105 24 100C27 95 32 91 34 87C36 83 38 80 38 75C39 71 38 65 39 60C40 55 41 48 44 44C47 39 53 36 58 34C64 33 71 34 77 35C82 36 88 39 93 39C98 40 102 40 107 39C112 39 118 36 123 35C129 34 136 33 142 34C147 36 153 39 156 44C159 48 160 55 161 60C162 65 161 71 162 75C162 80 164 83 166 87C168 91 173 95 176 100Z"/><ellipse data-hl="1" cx="66" cy="52" rx="26" ry="13" fill="#fff" opacity=".28" transform="rotate(-24 66 52)"></ellipse><g class="blink"><circle cx="80" cy="98" r="6.5" fill="#16130F"/></g><g class="blink"><circle cx="120" cy="98" r="6.5" fill="#16130F"/></g><path d="M86 122q7-7 14 0t14 0" fill="none" stroke="#16130F" stroke-width="5" stroke-linecap="round"/><path d="M112 84q8-6 16-2" fill="none" stroke="#16130F" stroke-width="4" stroke-linecap="round"/></svg>
+</sc-if>
+</div>
+</div>
+<div style="display:flex;gap:8px">
+<sc-if value="{{ n.isShield }}" hint-placeholder-val="{{ false }}">
+<a class="pill pill-k sm" href="Shield.dc.html">{{ n.primary }}</a>
+</sc-if>
+<sc-if value="{{ n.notShield }}" hint-placeholder-val="{{ true }}">
+<button class="pill pill-k sm">{{ n.primary }}</button>
+</sc-if>
+<sc-if value="{{ n.hasSecondary }}" hint-placeholder-val="{{ false }}">
+<button class="pill pill-w sm">{{ n.secondary }}</button>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:baseline;justify-content:space-between">
+<h2 class="disp" style="font-size:32px;line-height:1">Dueo is handling</h2>
+<div class="num" style="font-size:15px;font-weight:600;color:#57524A">4 invoices · ₹5,20,900</div>
+</div>
+<div style="background:#FFFFFF;border-radius:36px;overflow:hidden">
+<div class="hrow" style="border-top:none;padding-top:14px;padding-bottom:10px;font-size:13px;font-weight:600;color:#57524A">
+<div></div><div>Client</div><div style="text-align:right">Amount</div><div>State</div><div>Next</div><div></div>
+</div>
+<sc-for list="{{ handling }}" as="h" hint-placeholder-count="4">
+<a class="hrow" href="{{ h.href }}">
+<div class="{{ h.av }} disp">{{ h.initial }}</div>
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:700">{{ h.client }}</span><span class="mono" style="font-size:13px;color:#57524A">{{ h.inv }}</span></div>
+<div class="num" style="text-align:right;font-size:16px;font-weight:700">{{ h.amount }}</div>
+<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start"><span class="{{ h.stCls }}">{{ h.when }}</span><span style="font-size:13px;color:#57524A;padding-left:4px">{{ h.state }}</span></div>
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">{{ h.next }}</span><span style="font-size:13px;color:#57524A">{{ h.at }}</span></div>
+<div class="arw" aria-hidden="true">→</div>
+</a>
+</sc-for>
+</div>
+</section>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1420}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      needs: [
+        { tag: 'Dispute', tagCls: 'tg tg-coral', panel: 'pn-coral', c0: true, c1: false, c2: false, client: 'Harbor & Vale Retail', inv: '#0409', amount: '1,20,000', reason: 'Client says the second set of banners was never delivered. Dueo has paused all messages.', primary: 'Review dispute', isShield: false, notShield: true, hasSecondary: false, secondary: '' },
+        { tag: 'Promise missed', tagCls: 'tg tg-butter', panel: 'pn-butter', c0: false, c1: true, c2: false, client: 'Northfield Foods', inv: '#0398', amount: '62,500', reason: 'Promised to pay Fri 18 Sep. No payment detected. 26 days overdue. Dueo recommends Shield.', primary: 'Start Shield review', isShield: true, notShield: false, hasSecondary: true, secondary: 'Keep following up' },
+        { tag: 'Wrong contact', tagCls: 'tg tg-sky', panel: 'pn-sky', c0: false, c1: false, c2: true, client: 'Orbit Interiors', inv: '#0421', amount: '45,000', reason: 'Reply from +91 98•• ••• 210: “Wrong number, Priya left in June.” Dueo needs a new contact.', primary: 'Add contact', isShield: false, notShield: true, hasSecondary: false, secondary: '' }
+      ],
+      handling: [
+        { initial: 'V', av: 'av av-b', client: 'Vantage Health', inv: '#0428', amount: '₹1,45,000', when: 'Promise due today', stCls: 'st st-butter', state: 'Payment promised', next: 'Send payment link', at: 'Today, 4:00 PM · WhatsApp', href: '#' },
+        { initial: 'K', av: 'av av-l', client: 'Kestrel Logistics', inv: '#0417', amount: '₹85,000', when: '13 days overdue', stCls: 'st st-lilac', state: 'Following up', next: 'Follow up with accounts', at: 'Mon 21 Sep, 10:00 AM · WhatsApp', href: 'Invoice.dc.html' },
+        { initial: 'L', av: 'av av-l2', client: 'Lumen Analytics', inv: '#0402', amount: '₹78,500', when: '4 days overdue', stCls: 'st st-lilac', state: 'Following up', next: 'Send reminder', at: 'Mon 21 Sep, 10:00 AM · Email', href: '#' },
+        { initial: 'S', av: 'av av-b2', client: 'Sunrise Textiles', inv: '#0433', amount: '₹2,12,400', when: 'Due in 2 days', stCls: 'st st-butter', state: 'Due soon', next: 'Send payment request', at: 'Tue 22 Sep, 10:00 AM · WhatsApp', href: '#' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
