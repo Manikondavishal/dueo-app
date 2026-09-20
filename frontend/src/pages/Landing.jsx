@@ -103,7 +103,7 @@ export default function Landing() {
                 </div>
                 <div className="ld-phone-body">
                   <div className="rise" style={{ animationDelay: ".3s", alignSelf: "flex-start", maxWidth: 262, background: "#fff", borderRadius: "22px 22px 22px 6px", padding: "14px 14px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}><span style={{ fontSize: 16, fontWeight: 700 }}>Invoice #0417 &middot; &#8377;85,000</span><span style={{ fontSize: 14, color: "var(--muted)" }}>Due 7 Sep 2026</span></div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}><span style={{ fontSize: 15, fontWeight: 600 }}>Hey Nikhil</span><span style={{ fontSize: 16, fontWeight: 700 }}>Invoice #0417 &middot; &#8377;85,000 for UGC ads is sent</span><span style={{ fontSize: 14, color: "var(--muted)" }}>Due 7 Sep 2026</span></div>
                     {["Pay now", "Confirm payment date", "There\u2019s an issue"].map((t) => (
                       <span key={t} style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 38, borderRadius: 12, border: "1.5px solid var(--line)", fontSize: 14, fontWeight: 600, color: "#3B31A8" }}>{t}</span>
                     ))}
