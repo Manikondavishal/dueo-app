@@ -16,7 +16,9 @@
 .ld-peek { position: absolute; left: 0; top: 0; z-index: 1; }
 .ld-phone { position: relative; z-index: 2; width: 340px; max-width: 90%; margin-top: 60px; border-radius: 48px; background: #fff; padding: 22px 18px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 40px 70px -30px rgba(22,19,15,.4); }
 .ld-phone-body { flex-grow: 1; border-radius: 30px; background: var(--cream); padding: 16px 14px; display: flex; flex-direction: column; gap: 12px; }
-.ld-note { position: absolute; left: 0; bottom: 20px; z-index: 3; width: 250px; max-width: 70%; border-radius: 26px; background: #fff; padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 24px 40px -20px rgba(22,19,15,.35); }
+.ld-note { position: absolute; left: -8px; bottom: -32px; z-index: 3; width: 250px; max-width: 70%; border-radius: 26px; background: #fff; padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 24px 40px -20px rgba(22,19,15,.35); cursor: pointer; transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease; will-change: transform; }
+.ld-note:hover, .ld-note:focus-visible { transform: rotate(-4deg) translate(-28px, -46px); box-shadow: 0 34px 54px -22px rgba(22,19,15,.5); outline: none; }
+@media (prefers-reduced-motion: reduce) { .ld-note { transition: none; } .ld-note:hover { transform: rotate(-4deg); } }
 .ld-hero-chips { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 48px 40px; }
 .ld-chip { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px; border-radius: 999px; background: #fff; font-size: 14px; font-weight: 600; }
 
@@ -47,6 +49,23 @@
 
 .ld-control { border-radius: 48px; background: var(--butter); padding: 56px 72px; display: flex; justify-content: space-between; align-items: center; gap: 40px; flex-wrap: wrap; }
 .ld-control-card { min-height: 260px; border-radius: 36px; background: #fff; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+
+/* Peek inside — screenshot showcase */
+.ld-peek-sec { border-radius: 48px; background: var(--lilac); padding: 72px; display: flex; flex-direction: column; gap: 40px; overflow: hidden; }
+.ld-peek-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.ld-peek-head p { max-width: 420px; font-size: 18px; line-height: 1.5; color: var(--ink-soft); }
+.ld-peek-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: stretch; }
+.ld-peek-card { position: relative; border-radius: 32px; background: #fff; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 30px 50px -30px rgba(22,19,15,.35); transition: transform .4s cubic-bezier(.2,.7,.2,1), box-shadow .4s ease; }
+.ld-peek-card:hover { transform: translateY(-8px); box-shadow: 0 44px 60px -30px rgba(22,19,15,.5); }
+.ld-peek-tag { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; background: var(--cream); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.ld-peek-shot { border-radius: 20px; overflow: hidden; background: var(--cream); aspect-ratio: 4 / 3; display: flex; align-items: flex-start; justify-content: center; }
+.ld-peek-shot img { width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block; }
+.ld-peek-label { display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 8px; }
+.ld-peek-label .disp { font-size: 24px; line-height: 1.05; }
+.ld-peek-label span { font-size: 14px; color: var(--ink-soft); }
+.ld-peek-foot { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--ink-soft); }
+@media (max-width: 1100px) { .ld-peek-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 767px) { .ld-peek-sec { padding: 28px 20px; } .ld-peek-grid { grid-template-columns: 1fr; } }
 
 .ld-final { position: relative; border-radius: 48px; background: var(--mint); overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; text-align: center; padding: 80px 24px; }
 

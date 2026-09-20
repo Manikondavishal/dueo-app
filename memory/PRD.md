@@ -23,6 +23,17 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Business owner** (Indian service business): requests invite, signs in, sets up, sees Today.
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
+## Ops notes
+- **Emergent-managed email key is currently invalid** (`EMERGENT_EMAIL_KEY` returns
+  `401 invalid X-Email-Key` from `integrations.emergentagent.com`). Real OTP emails
+  do NOT deliver until the user rotates the key. The outbox still records every send.
+- **Admin sign-in bootstrap**: `GET /api/admin/bootstrap-code?email=<admin>&token=<CRON_SECRET>`
+  returns the last OTP for an admin email — works even when the mailer is down.
+- Landing page: hero "Dueo noticed" card lifts on hover (no longer covers the
+  chat bubble text); replaced the old Control section with **Peek inside** —
+  a 3-tile showcase of Today view, Invoices, and Proof of promise (uses the
+  attached PNG artifacts from customer-assets).
+
 ## What is implemented (2026-09-20)
 - Phase 0 (all PASS, see `docs/PHASE0_REPORT.md`): webhook HMAC+store-first, atomic single-winner job race,
   unique-index dedupe, auth-gated upload/download, LLM image→structured JSON.

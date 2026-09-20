@@ -322,6 +322,10 @@ async def list_outbox(limit: int = 100) -> list[dict]:
     return [_clean(d) for d in await db.emails_outbox.find().sort("created_at", -1).to_list(limit)]
 
 
+async def latest_login_email(email: str) -> Optional[dict]:
+    return _clean(await db.emails_outbox.find_one({"to": email, "kind": "login_code"}, sort=[("created_at", -1)]))
+
+
 # ----------------------------------------------------------------------------
 # Indexes + migration tracking (kept here so only repositories touch the DB)
 # ----------------------------------------------------------------------------

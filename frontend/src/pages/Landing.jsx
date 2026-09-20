@@ -10,12 +10,6 @@ const REPLIES = [
   { q: "\u201cWe\u2019ve already paid.\u201d", title: "Stop.", body: "Dueo stops chasing and asks for the payment reference to match it.", shape: "flower", tone: "mint", mood: "focus" },
 ];
 
-const CONTROLS = [
-  { key: "pause", label: "Pause anytime", status: "Paused.", note: "Nothing will be sent.", shape: "cloud", tone: "butter", mood: "sleepy" },
-  { key: "stop", label: "Stop anytime", status: "Stopped.", note: "Dueo won\u2019t send anything.", shape: "squircle", tone: "sky", mood: "focus" },
-  { key: "step", label: "Step in anytime", status: "You\u2019re in.", note: "Dueo waits for you.", shape: "flower", tone: "mint", mood: "cheer" },
-];
-
 const PAIN = [
   { t: "\u201cAny update?\u201d", bg: "var(--coral)", r: -4 },
   { t: "\u201cI\u2019ll check with accounts.\u201d", bg: "#fff", r: 3 },
@@ -23,6 +17,36 @@ const PAIN = [
   { t: "\u201cCan you confirm a date?\u201d", bg: "var(--sky)", r: 4 },
   { t: "\u201cFriday.\u201d", bg: "var(--mint)", r: -5 },
   { t: "\u201cStill waiting for approval.\u201d", bg: "var(--lilac)", r: 2 },
+];
+
+const PEEK = [
+  {
+    k: "today",
+    tag: "Today view",
+    dot: "#A9A0F0",
+    title: "One case, one next move.",
+    note: "Kestrel Logistics \u00b7 \u20b985,000 \u00b7 13 days overdue",
+    src: "https://customer-assets-eiarnc6j.emergentagent.net/job_invoice-follow-up-8/artifacts/l4st8qqm_Invoice%20detail%401x.png",
+    alt: "Dueo Today view showing a Kestrel Logistics invoice for \u20b985,000 with Follow up with accounts as the next best action.",
+  },
+  {
+    k: "invoices",
+    tag: "Invoices",
+    dot: "#7FD0A3",
+    title: "Every invoice, every state.",
+    note: "7 invoices \u00b7 \u20b97,48,400 in play",
+    src: "https://customer-assets-eiarnc6j.emergentagent.net/job_invoice-follow-up-8/artifacts/g8nnx6vg_Invoices%401x.png",
+    alt: "Dueo Invoices list showing needs-you, following-up and promised invoices grouped in one view.",
+  },
+  {
+    k: "proof",
+    tag: "Proof of promise",
+    dot: "#F5D642",
+    title: "A tamper-evident record.",
+    note: "Chronology + hash chain, printable to PDF",
+    src: "https://customer-assets-eiarnc6j.emergentagent.net/job_invoice-follow-up-8/artifacts/wwlmh2rd_Proof%20of%20promise%401x.png",
+    alt: "Dueo Proof of Promise document listing chronological events for an invoice with per-event hashes.",
+  },
 ];
 
 const SHIELD_STEPS = [
@@ -56,7 +80,6 @@ function Nav() {
 export default function Landing() {
   const navigate = useNavigate();
   const [sel, setSel] = useState(1);
-  const [mode, setMode] = useState("run");
 
   useEffect(() => {
     document.title = "Dueo: get paid without chasing";
@@ -73,7 +96,6 @@ export default function Landing() {
   }, []);
 
   const r = REPLIES[sel];
-  const activeControl = CONTROLS.find((c) => c.key === mode);
 
   return (
     <div id="top" className="ld-root">
@@ -218,26 +240,28 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CONTROL */}
+      {/* PEEK INSIDE */}
       <section className="ld-section">
-        <div className="ld-control">
-          <h2 className="disp" style={{ fontSize: "clamp(40px,7vw,84px)", lineHeight: .98, flex: "1 1 480px" }}>Dueo does the chasing. <span className="serif">You stay in control.</span></h2>
-          <div style={{ flex: "1 1 420px", display: "flex", flexDirection: "column", gap: 20 }}>
-            <div className="ld-control-card">
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <span className="mono" style={{ fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>Status</span>
-                <span className="disp" style={{ fontSize: 44, lineHeight: 1 }}>{mode === "run" ? "Following up." : activeControl.status}</span>
-                <span style={{ fontSize: 17, color: "var(--ink-soft)" }}>{mode === "run" ? "Next message: Mon 10:00 AM." : activeControl.note}</span>
-              </div>
-              {mode === "run"
-                ? <DueoCharacter shape="bean" mood="happy" tone="lilac" size={150} />
-                : <DueoCharacter shape={activeControl.shape} mood={activeControl.mood} tone={activeControl.tone} size={150} bob={mode !== "pause"} />}
-            </div>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {CONTROLS.map((c) => (
-                <button key={c.key} className={`ctl ${mode === c.key ? "ctl-on" : ""}`} aria-pressed={mode === c.key} onClick={() => setMode(mode === c.key ? "run" : c.key)} data-testid={`control-${c.key}`}>{c.label}</button>
-              ))}
-            </div>
+        <div className="ld-peek-sec">
+          <div className="ld-peek-head">
+            <h2 className="disp" style={{ fontSize: "clamp(40px,7vw,84px)", lineHeight: .98, maxWidth: 640 }}>Peek inside <span className="serif">what we&rsquo;re building.</span></h2>
+            <p>A quick look at the Dueo app: your Today view, your invoices, and the Proof of promise document we generate for every case.</p>
+          </div>
+          <div className="ld-peek-grid">
+            {PEEK.map((p) => (
+              <figure key={p.k} className="ld-peek-card" data-testid={`peek-${p.k}`}>
+                <span className="ld-peek-tag"><span className="dot" style={{ background: p.dot }} />{p.tag}</span>
+                <div className="ld-peek-shot"><img src={p.src} alt={p.alt} loading="lazy" /></div>
+                <figcaption className="ld-peek-label">
+                  <span className="disp">{p.title}</span>
+                  <span>{p.note}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <div className="ld-peek-foot">
+            <DueoCharacter shape="flower" mood="cheer" tone="mint" size={60} />
+            <span>Screens from our in-progress build. Details will change.</span>
           </div>
         </div>
       </section>
