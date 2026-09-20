@@ -1,0 +1,25 @@
+{
+  "summary": "Phase 1 end-to-end verified. Backend: 11/11 pytest passing in /app/backend/tests/test_phase1_flows.py — invite/request (new/manual_review/idempotent/honeypot/rate-limit 429), admin guard 401, request-code neutrality (known==unknown), full admin OTP login via emails_outbox, invite-consume+setup+suspend session revocation, invalid token 400. Frontend: Playwright verified Landing at 1440 and 390, hero copy 'Get paid. Without chasing.', reply rows change Dueo's-move panel, control Pause/Stop/Step toggle status card, /invite form submits and shows success, /login shows email step then code step and 'Get the invite' link on both, invite-consume at /invite?token=... redirected to /setup, setup with consent completes and lands on /today with left rail (Today active; Invoices/Clients/Shield 'Coming next'), Channels card with Email 'Not connected', empty state 'Nothing for you to do.'",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_phase1_flows.py",
+    "/app/test_reports/pytest/phase1_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Rate limits and OTP records are not isolated between test runs; test fixture manually cleans rate_limits {kind: otp_email|otp_ip|verify_ip}. Consider a dev/test cleanup endpoint or per-run IP scoping if you plan CI.",
+    "emails_outbox uses ISO-string created_at; if two emails land in the same second the 'latest' sort by created_at is ambiguous. Not user-facing but tests must count-diff before/after to avoid stale-email selection.",
+    "email provider 'send failed kind=invite status=failed' shows up in stderr when EMAIL_API_KEY is empty — the outbox still records the copy (good), but log level could be lowered for empty-key case to reduce noise."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase1_flows.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Admin: vishalmanikonda@icloud.com (OTP read from emails_outbox). Fresh invite tokens are minted per test by seeding a lead + calling leads._issue_invite; token extracted from emails_outbox invite email HTML.",
+  "seed_data_creation": "Created a fresh approved lead (ui_test_*@example.com) via leads._issue_invite to obtain a live invite token used by the Playwright invite-consume flow. Test suite creates ephemeral leads with TEST-style unique emails per run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run: `cd /app/backend && python -m pytest tests/test_phase1_flows.py -v -o addopts=''`. The session fixture cleans rate_limits (kind in [otp_email, otp_ip, verify_ip]) and admin OTPs; if you add tests that call /api/invite/request many times, also clean 'invite_ip'. To get a live invite token for UI tests, seed a lead + call app.services.leads._issue_invite, then read emails_outbox {to,kind:'invite'} html. Frontend flow /invite?token=... -> /setup -> /today works end-to-end. All required data-testids exist.",
+  "rca of the issue": "N/A — no issues found. Two initial test-suite failures were self-inflicted (a) motor AsyncIOMotorClient reused across pytest event loops (fixed by switching db fixture to pymongo sync), and (b) OTP rate-limit and stale outbox emails causing invalid_code on re-runs (fixed by cleaning rate_limits and using a count-diff before/after request-code)."
+}
