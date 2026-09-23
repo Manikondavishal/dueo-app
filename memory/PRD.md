@@ -24,6 +24,17 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **Section 2 (Choose-how-to-proceed) shipped 2026-09-23**: new
+  `POST /api/hubs/{id}/handling` with body `{mode: "share_myself"|"dueo_handles"}`,
+  writes `handling_mode` on the draft hub. `400 invalid_mode` on anything else,
+  `409 hub_not_draft` once status leaves draft, `401` unauth, `404` cross-org.
+  Frontend `/hub/:id/proceed` shows two big option cards (butter/mint tones,
+  Dueo characters); on "share_myself" a copyable link panel appears with
+  `{REACT_APP_BACKEND_URL}/hub/{public_token}` + Copy button + "Actually let
+  Dueo handle it" switch; on "dueo_handles" routes to `/hub/:id/contacts`
+  (Section 3 target). **Evidence**: authenticated POST returned the updated hub
+  with `handling_mode=share_myself`, invalid mode → 400, unauth → 401, non-draft
+  → 409. UI screenshot verified all `data-testid` hooks + copyable public URL.
 - **P3 (Preview screen) shipped 2026-09-23**: `/hub/:id/preview` renders a
   read-only case card (status pill computed from `due_date` — `N days overdue` /
   `Due today` / `Due in N days`), giant amount, client name, INV # / Due /
@@ -100,9 +111,9 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
   WhatsApp, Razorpay, Proof of promise, Shield logic.
 
 ## Backlog (next, awaiting go-ahead)
-- P1: **Section 2 (Choose-how-to-proceed)** — two-path picker (share-myself
-  vs Let-Dueo-handle-it) at `/hub/:id/proceed`. Share-myself surfaces a copyable
-  public link built from `public_token`; Let-Dueo-handle-it flows into Section 3.
+- P1: **Section 3 (Contacts)** — Primary/Escalation-1/Escalation-2 form at
+  `/hub/:id/contacts` writing to `payment_hub_contacts`; primary all-required,
+  escalations optional.
 - P1: **Section 2 (Choose-how-to-proceed)** — two-path picker (share-myself
   vs Let-Dueo-handle-it).
 - P1: **Section 3 (Contacts)** — Primary/Escalation-1/Escalation-2 UI writing to

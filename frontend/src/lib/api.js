@@ -27,6 +27,7 @@ export const api = {
   createHubFromUpload: (upload_id) => client.post("/hubs/from-upload", { upload_id }).then((r) => r.data),
   getHub: (id) => client.get(`/hubs/${id}`).then((r) => r.data),
   patchHub: (id, payload) => client.patch(`/hubs/${id}`, payload).then((r) => r.data),
+  setHubHandling: (id, mode) => client.post(`/hubs/${id}/handling`, { mode }).then((r) => r.data),
   listHubs: () => client.get("/hubs").then((r) => r.data),
 };
 

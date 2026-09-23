@@ -34,6 +34,10 @@ class PatchHubIn(BaseModel):
     business_payment_details: str | None = Field(default=None, max_length=2000)
 
 
+class HandlingIn(BaseModel):
+    mode: str  # "share_myself" | "dueo_handles"
+
+
 def _to_paise(amount) -> int | None:
     """Coerce the LLM's `amount` field (could be int, float, or numeric string
     with commas / rupee sign) into integer paise. Returns None on any failure."""
@@ -131,3 +135,18 @@ async def patch_hub(hub_id: str, body: PatchHubIn, ctx=Depends(current_context))
 @router.get("")
 async def list_hubs(ctx=Depends(current_context)):
     return {"hubs": await store.list_payment_hubs_for_org(ctx["org_id"])}
+
+
+@router.post("/{hub_id}/handling")
+async def set_handling(hub_id: str, body: HandlingIn, ctx=Depends(current_context)):
+    """Section 2: record whether the owner will share the link themselves or let
+    Dueo do the follow-up. Only settable while the hub is a draft."""
+    if body.mode not in ("share_myself", "dueo_handles"):
+        raise HTTPException(status_code=400, detail="invalid_mode")
+    hub = await store.get_payment_hub(hub_id)
+    if not hub or hub.get("org_id") != ctx["org_id"]:
+        raise HTTPException(status_code=404, detail="not_found")
+    if hub.get("status") != "draft":
+        raise HTTPException(status_code=409, detail="hub_not_draft")
+    updated = await store.update_payment_hub(hub_id, {"handling_mode": body.mode, "updated_at": iso()})
+    return {"hub": updated}
