@@ -14,7 +14,9 @@ from pydantic import BaseModel, Field
 from ..deps import current_context
 from ..providers import storage
 from ..providers.llm import llm_provider
+from ..providers.whatsapp import provider as wa_provider
 from ..repositories import store
+from ..services import templates as tmpl
 from ..util import gen_token, iso, new_id
 
 logger = logging.getLogger("dueo.hubs")
@@ -49,6 +51,11 @@ class ContactsIn(BaseModel):
     poc: ContactIn
     escalation_1: ContactIn | None = None
     escalation_2: ContactIn | None = None
+
+
+class ApproveIn(BaseModel):
+    tone: str  # "professional" | "warm" | "firm"
+    consent: bool = False
 
 
 def _to_paise(amount) -> int | None:
@@ -224,3 +231,102 @@ async def save_hub_contacts(hub_id: str, body: ContactsIn, ctx=Depends(current_c
         })
     saved = await store.replace_hub_contacts(hub_id, rows)
     return {"contacts": saved}
+
+
+# --- Section 4: Tone & Approve ------------------------------------------------
+
+async def _render_all(tone: str, hub: dict, contacts: list[dict], business_name: str) -> dict:
+    from ..config import settings
+    poc = next((c for c in contacts if c["role"] == "poc"), None)
+    esc = next((c for c in contacts if c["role"] == "escalation_1"), None)
+    base = (settings.APP_URL or "").rstrip("/")
+    return {
+        cat: tmpl.render(tone, cat, hub, poc, esc, business_name, base)
+        for cat in tmpl.CATEGORIES
+    }
+
+
+@router.get("/{hub_id}/preview-messages")
+async def preview_messages(hub_id: str, tone: str = "professional",
+                           ctx=Depends(current_context)):
+    if tone not in tmpl.TONES:
+        raise HTTPException(status_code=400, detail="bad_tone")
+    hub = await store.get_payment_hub(hub_id)
+    if not hub or hub.get("org_id") != ctx["org_id"]:
+        raise HTTPException(status_code=404, detail="not_found")
+    contacts = await store.list_hub_contacts(hub_id)
+    return {"tone": tone, "messages": await _render_all(tone, hub, contacts, ctx["org"]["display_name"])}
+
+
+@router.post("/{hub_id}/approve")
+async def approve_plan(hub_id: str, body: ApproveIn, ctx=Depends(current_context)):
+    """Section 4: create the follow_up_plan (status=approved), render + persist
+    the first follow_up_message (category=initial, status=scheduled), then
+    dispatch it via the WhatsAppProvider to the primary contact. If the send
+    succeeds the message flips to `sent`; on failure it goes to `failed` with
+    the error preserved. The hub itself becomes `active` either way — the plan
+    exists, retries can happen later."""
+    if not body.consent:
+        raise HTTPException(status_code=400, detail="consent_required")
+    if body.tone not in tmpl.TONES:
+        raise HTTPException(status_code=400, detail="bad_tone")
+
+    hub = await store.get_payment_hub(hub_id)
+    if not hub or hub.get("org_id") != ctx["org_id"]:
+        raise HTTPException(status_code=404, detail="not_found")
+    if hub.get("status") != "draft":
+        raise HTTPException(status_code=409, detail="hub_not_draft")
+
+    contacts = await store.list_hub_contacts(hub_id)
+    poc = next((c for c in contacts if c["role"] == "poc"), None)
+    if not poc:
+        raise HTTPException(status_code=400, detail="no_primary_contact")
+
+    business_name = ctx["org"]["display_name"]
+    body_text = tmpl.render(body.tone, "initial", hub,
+                            poc, next((c for c in contacts if c["role"] == "escalation_1"), None),
+                            business_name, (ctx.get("app_url") or ""))
+
+    now = iso()
+    plan = await store.insert_follow_up_plan({
+        "id": new_id(), "payment_hub_id": hub_id, "tone": body.tone,
+        "status": "approved", "approved_at": now, "created_at": now,
+        "approved_by": ctx["user"]["id"],
+    })
+    msg = await store.insert_follow_up_message({
+        "id": new_id(), "payment_hub_id": hub_id, "plan_id": plan["id"],
+        "contact_role": "poc", "channel": "whatsapp", "category": "initial",
+        "body": body_text, "status": "scheduled", "scheduled_for": now,
+        "sent_at": None, "created_at": now,
+    })
+
+    send_err = None
+    try:
+        sent = await wa_provider.send_freeform(poc["phone"], body_text)
+        # Also persist a mirror row in whatsapp_messages so the conversation view
+        # (Section 6) can render everything from one collection.
+        await store.insert_whatsapp_message({
+            "id": new_id(), "provider_sid": sent.provider_id,
+            "direction": "outbound", "channel": "whatsapp",
+            "from_addr": None, "to_addr": poc["phone"], "body": body_text,
+            "num_media": 0, "status": sent.status, "payment_hub_id": hub_id,
+            "org_id": ctx["org_id"], "created_at": iso(),
+        })
+        await store.update_follow_up_message(msg["id"], {
+            "status": "sent", "sent_at": iso(),
+            "provider_sid": sent.provider_id, "provider_status": sent.status,
+        })
+    except Exception as e:  # noqa: BLE001
+        send_err = str(e)[:400]
+        logger.warning("approve send failed: %s", send_err)
+        await store.update_follow_up_message(msg["id"], {
+            "status": "failed", "error": send_err,
+        })
+
+    await store.update_payment_hub(hub_id, {"status": "active", "updated_at": iso()})
+    updated_msg = await store.list_follow_up_messages_for_hub(hub_id)
+    return {
+        "plan": plan,
+        "message": updated_msg[0] if updated_msg else msg,
+        "send_error": send_err,
+    }

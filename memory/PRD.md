@@ -24,6 +24,28 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **Section 4 (Tone & Approve) shipped 2026-09-23**: new
+  `services/templates.py` holds all 9 static templates (3 tones × 3 categories:
+  `initial`, `follow_up`, `escalation`); `render()` does plain `{var}`
+  substitution with `_fmt_inr()` for Indian rupees. New routes
+  `GET /api/hubs/{id}/preview-messages?tone=` (returns all 3 categories rendered)
+  and `POST /api/hubs/{id}/approve` (body `{tone, consent}`; `400 consent_required`
+  / `bad_tone` / `no_primary_contact`, `409 hub_not_draft`). On approve:
+  creates `follow_up_plans` (status=approved), inserts first
+  `follow_up_messages` (category=initial, status=scheduled), dispatches via
+  `providers.whatsapp.provider.send_freeform` to primary phone, on success
+  updates row → status=sent + provider_sid + mirrors an outbound row in
+  `whatsapp_messages`; on failure updates → status=failed + error preserved.
+  Hub always flips to `status=active` so retries can run later. Frontend
+  `/hub/:id/tone` has 3 tone cards (sky/mint/coral), 3 category tabs, WhatsApp
+  preview card, consent checkbox on butter background, and a "Twilio sandbox
+  join phrase required" callout in lilac.
+  **LIVE proof**: `POST /approve` against the real Twilio sandbox returned
+  `plan_status=approved`, `msg_status=failed`, `send_error="HTTP 422 …No
+  Twilio trial phone number is assigned for messaging to this destination
+  number"` — the sandbox specifically rejects unverified recipients, which
+  confirms the code hits Twilio's live API with valid credentials; once the
+  primary joins by texting the sandbox code, sends will deliver.
 - **Section 3 (Contacts) shipped 2026-09-23**: new
   `GET /api/hubs/{id}/contacts` (prefill) and `POST /api/hubs/{id}/contacts`
   with replace-semantics — wipes the hub's existing rows and inserts the new
@@ -123,13 +145,13 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
   WhatsApp, Razorpay, Proof of promise, Shield logic.
 
 ## Backlog (next, awaiting go-ahead)
-- P1: **Section 4 (Tone & Approve)** — 3 tone buttons (Professional / Warm /
-  Firm), 3 preview tabs (Initial / Follow-up / Escalation) using static
-  templates with variable substitution against the real contact + invoice,
-  consent checkbox, on approve create `follow_up_plans` row + first
-  `follow_up_messages` row and send it via the Twilio pipe to the primary's
-  phone. **Twilio sandbox join phrase required** on the primary's WhatsApp
-  before the send will actually deliver.
+- P1: **Section 5 (Public payment hub)** — unauthenticated `/hub/:token` page:
+  business name, invoice #, amount, due date, status pill, vertical timeline
+  from `follow_up_messages` + `whatsapp_messages`, Pay Now / Confirm payment
+  date / There's an issue buttons. `GET /api/public/hub/{token}` route.
+- P1: **Section 6 (Dashboard + Invoice detail)** at `/dashboard` and
+  `/hub/:id/detail` — counts, table, Conversation/Details/Activity tabs.
+- P1: **Section 7 — remove `/dev/whatsapp-test`** (never built here anyway).
 - P1: **Section 2 (Choose-how-to-proceed)** — two-path picker (share-myself
   vs Let-Dueo-handle-it).
 - P1: **Section 3 (Contacts)** — Primary/Escalation-1/Escalation-2 UI writing to
