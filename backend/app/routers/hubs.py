@@ -6,6 +6,7 @@ fields until we add PDF-to-image conversion)."""
 import asyncio
 import base64
 import logging
+import re
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -36,6 +37,18 @@ class PatchHubIn(BaseModel):
 
 class HandlingIn(BaseModel):
     mode: str  # "share_myself" | "dueo_handles"
+
+
+class ContactIn(BaseModel):
+    name: str = Field(default="", max_length=120)
+    phone: str = Field(default="", max_length=32)
+    email: str = Field(default="", max_length=200)
+
+
+class ContactsIn(BaseModel):
+    poc: ContactIn
+    escalation_1: ContactIn | None = None
+    escalation_2: ContactIn | None = None
 
 
 def _to_paise(amount) -> int | None:
@@ -150,3 +163,64 @@ async def set_handling(hub_id: str, body: HandlingIn, ctx=Depends(current_contex
         raise HTTPException(status_code=409, detail="hub_not_draft")
     updated = await store.update_payment_hub(hub_id, {"handling_mode": body.mode, "updated_at": iso()})
     return {"hub": updated}
+
+
+_PHONE_RE = re.compile(r"^\+?\d[\d\s\-]{6,}$")
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _validate_contact(c: "ContactIn", who: str, required: bool) -> dict | None:
+    name = (c.name or "").strip()
+    phone = (c.phone or "").strip()
+    email = (c.email or "").strip().lower()
+    filled = any([name, phone, email])
+    if not filled and not required:
+        return None
+    missing = [k for k, v in (("name", name), ("phone", phone), ("email", email)) if not v]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"{who}_missing_{missing[0]}")
+    if not _PHONE_RE.match(phone):
+        raise HTTPException(status_code=400, detail=f"{who}_bad_phone")
+    if not _EMAIL_RE.match(email):
+        raise HTTPException(status_code=400, detail=f"{who}_bad_email")
+    return {"name": name, "phone": phone, "email": email}
+
+
+@router.get("/{hub_id}/contacts")
+async def read_hub_contacts(hub_id: str, ctx=Depends(current_context)):
+    hub = await store.get_payment_hub(hub_id)
+    if not hub or hub.get("org_id") != ctx["org_id"]:
+        raise HTTPException(status_code=404, detail="not_found")
+    return {"contacts": await store.list_hub_contacts(hub_id)}
+
+
+@router.post("/{hub_id}/contacts")
+async def save_hub_contacts(hub_id: str, body: ContactsIn, ctx=Depends(current_context)):
+    """Section 3: replace the contact set for this hub. Primary is required
+    (name+phone+email); escalations are optional but if partially filled must
+    be fully valid. Idempotent — re-submitting rewrites the set."""
+    hub = await store.get_payment_hub(hub_id)
+    if not hub or hub.get("org_id") != ctx["org_id"]:
+        raise HTTPException(status_code=404, detail="not_found")
+    if hub.get("status") != "draft":
+        raise HTTPException(status_code=409, detail="hub_not_draft")
+
+    parts = [
+        ("poc", body.poc, True),
+        ("escalation_1", body.escalation_1 or ContactIn(), False),
+        ("escalation_2", body.escalation_2 or ContactIn(), False),
+    ]
+    rows: list[dict] = []
+    for role, c, required in parts:
+        got = _validate_contact(c, role, required)
+        if got is None:
+            continue
+        rows.append({
+            "id": new_id(),
+            "payment_hub_id": hub_id,
+            "role": role,
+            **got,
+            "created_at": iso(),
+        })
+    saved = await store.replace_hub_contacts(hub_id, rows)
+    return {"contacts": saved}

@@ -24,6 +24,18 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **Section 3 (Contacts) shipped 2026-09-23**: new
+  `GET /api/hubs/{id}/contacts` (prefill) and `POST /api/hubs/{id}/contacts`
+  with replace-semantics — wipes the hub's existing rows and inserts the new
+  set atomically. Body: `{poc, escalation_1?, escalation_2?}`; primary requires
+  `name+phone+email`, escalations optional but must be fully valid if any field
+  is filled. Server-side regex validates phone (`^\+?\d[\d\s\-]{6,}$`) and
+  email; failures return `400 {role}_bad_{field}` or `_missing_{field}`. `409`
+  on non-draft, `401` unauth, `404` cross-org. Frontend `/hub/:id/contacts` has
+  three colour-tiered contact blocks (mint primary, butter esc1, lilac esc2)
+  with inline "all three fields" hint; **Continue to tone →** is disabled until
+  the primary is valid AND any filled escalations are valid. On save routes to
+  `/hub/:id/tone` (Section 4 target). Store helper: `replace_hub_contacts`.
 - **Section 2 (Choose-how-to-proceed) shipped 2026-09-23**: new
   `POST /api/hubs/{id}/handling` with body `{mode: "share_myself"|"dueo_handles"}`,
   writes `handling_mode` on the draft hub. `400 invalid_mode` on anything else,
@@ -111,9 +123,13 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
   WhatsApp, Razorpay, Proof of promise, Shield logic.
 
 ## Backlog (next, awaiting go-ahead)
-- P1: **Section 3 (Contacts)** — Primary/Escalation-1/Escalation-2 form at
-  `/hub/:id/contacts` writing to `payment_hub_contacts`; primary all-required,
-  escalations optional.
+- P1: **Section 4 (Tone & Approve)** — 3 tone buttons (Professional / Warm /
+  Firm), 3 preview tabs (Initial / Follow-up / Escalation) using static
+  templates with variable substitution against the real contact + invoice,
+  consent checkbox, on approve create `follow_up_plans` row + first
+  `follow_up_messages` row and send it via the Twilio pipe to the primary's
+  phone. **Twilio sandbox join phrase required** on the primary's WhatsApp
+  before the send will actually deliver.
 - P1: **Section 2 (Choose-how-to-proceed)** — two-path picker (share-myself
   vs Let-Dueo-handle-it).
 - P1: **Section 3 (Contacts)** — Primary/Escalation-1/Escalation-2 UI writing to

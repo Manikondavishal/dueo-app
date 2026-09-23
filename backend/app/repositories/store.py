@@ -395,6 +395,16 @@ async def list_hub_contacts(payment_hub_id: str) -> list[dict]:
     return [_clean(d) for d in await cur.to_list(20)]
 
 
+async def replace_hub_contacts(payment_hub_id: str, contacts: list[dict]) -> list[dict]:
+    """Section-3 semantics: contacts are edited as a set. Wipe existing rows
+    for the hub, insert the new ones in one shot, return them."""
+    await db.payment_hub_contacts.delete_many({"payment_hub_id": payment_hub_id})
+    if contacts:
+        docs = [{**c, "_id": c["id"]} for c in contacts]
+        await db.payment_hub_contacts.insert_many(docs)
+    return await list_hub_contacts(payment_hub_id)
+
+
 async def insert_follow_up_plan(doc: dict) -> dict:
     await db.follow_up_plans.insert_one({**doc, "_id": doc["id"]})
     return _clean(dict(doc))
