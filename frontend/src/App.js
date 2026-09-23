@@ -12,6 +12,7 @@ import Setup from "./pages/Setup";
 import Today from "./pages/Today";
 import Upload from "./pages/Upload";
 import Review from "./pages/Review";
+import Preview from "./pages/Preview";
 import AdminLeads from "./pages/AdminLeads";
 import AdminUsers from "./pages/AdminUsers";
 import AdminOutbox from "./pages/AdminOutbox";
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/today" element={<Today />} />
         <Route path="/upload" element={<Upload />} />
         <Route path="/hub/:id/review" element={<Review />} />
+        <Route path="/hub/:id/preview" element={<Preview />} />
         <Route path="/admin/leads" element={<AdminLeads />} />
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/outbox" element={<AdminOutbox />} />

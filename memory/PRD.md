@@ -24,6 +24,14 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **P3 (Preview screen) shipped 2026-09-23**: `/hub/:id/preview` renders a
+  read-only case card (status pill computed from `due_date` — `N days overdue` /
+  `Due today` / `Due in N days`), giant amount, client name, INV # / Due /
+  Currency / LLM grid, payment details block, plus a lilac "What {client} will
+  see" mini-preview card. **Continue** button disabled until every required
+  field is present; **Edit details** returns to Review. No new backend — pure
+  read of `GET /api/hubs/{id}`. Screenshot verified all 10 `data-testid` hooks
+  present with a real overdue Kestrel Logistics case (₹85,000 · 16 days overdue).
 - **P2 (Review screen) shipped 2026-09-23**: `PATCH /api/hubs/{hub_id}` (auth,
   tenant-scoped, `409 hub_not_draft` once status leaves draft). Accepts
   `amount_rupees` (float ≥ 0) and stores integer paise. Frontend `/hub/:id/review`
@@ -92,8 +100,9 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
   WhatsApp, Razorpay, Proof of promise, Shield logic.
 
 ## Backlog (next, awaiting go-ahead)
-- P1: **P3 · Preview screen** (`/hub/:id/preview`) — read-only summary before
-  Section 2 branching.
+- P1: **Section 2 (Choose-how-to-proceed)** — two-path picker (share-myself
+  vs Let-Dueo-handle-it) at `/hub/:id/proceed`. Share-myself surfaces a copyable
+  public link built from `public_token`; Let-Dueo-handle-it flows into Section 3.
 - P1: **Section 2 (Choose-how-to-proceed)** — two-path picker (share-myself
   vs Let-Dueo-handle-it).
 - P1: **Section 3 (Contacts)** — Primary/Escalation-1/Escalation-2 UI writing to
