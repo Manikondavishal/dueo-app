@@ -51,7 +51,7 @@ export default function Today() {
             <h1 className="disp" style={{ fontSize: "clamp(48px,8vw,72px)", lineHeight: .9 }}>Today</h1>
             <span style={{ display: "inline-flex", alignItems: "center", height: 36, padding: "0 16px", borderRadius: 999, background: "#fff", fontSize: 15, fontWeight: 600, marginTop: 12 }} data-testid="today-date">{todayLabel()}</span>
           </div>
-          <button className="pill pill-k" onClick={() => alert("Coming next")} data-testid="add-invoice">Add invoice +</button>
+          <button className="pill pill-k" onClick={() => navigate("/upload")} data-testid="add-invoice">Add invoice +</button>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 20 }}>

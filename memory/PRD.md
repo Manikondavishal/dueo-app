@@ -24,6 +24,17 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **P1 (invoice upload UI) shipped 2026-09-23**: `POST /api/hubs/from-upload`
+  ties together the existing Phase-0 object-storage upload + Gemini LLM extract,
+  creates a draft `payment_hub` with extracted fields (invoice_number, client_name,
+  amount_paise, currency, due_date). Frontend `/upload` page (auth-required) has
+  drag-drop + progress + extracted-field preview + "Review the details" CTA.
+  Also wired `Today.jsx`'s "Add invoice" button to `/upload`. PDF uploads persist
+  but skip LLM extract (llm_status=skipped); user fills fields manually in Review.
+  **Evidence**: E2E script uploaded a synthetic invoice PNG as
+  `phase0_upload@example.com`, Gemini returned exactly the fields painted on the
+  image (INV-0417 / Kestrel Logistics / ₹85,000 / INR / 2026-09-07),
+  amount coerced to 8500000 paise, hub row persisted with status=draft.
 - **Twilio WhatsApp pipe (P0 + P4) shipped 2026-09-23**: `WhatsAppProvider` interface,
   `TwilioWhatsAppProvider` (real, async) + `LogOnlyWhatsAppProvider` (fallback when
   Twilio creds are missing), inbound webhook at `/api/webhooks/twilio-whatsapp/inbound`
@@ -71,8 +82,12 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
   WhatsApp, Razorpay, Proof of promise, Shield logic.
 
 ## Backlog (next, awaiting go-ahead)
-- P1: **Section 2 (Choose-how-to-proceed)** — build the two-path picker (share-myself
-  vs Let-Dueo-handle-it) that follows Preview. STOP-driven per user's brief.
+- P1: **P2 · Review screen** (`/hub/:id/review`) — editable form of the extracted
+  fields + business payment details; PATCH endpoint on `/api/hubs/{id}` to save.
+- P1: **P3 · Preview screen** (`/hub/:id/preview`) — read-only summary before
+  Section 2 branching.
+- P1: **Section 2 (Choose-how-to-proceed)** — two-path picker (share-myself
+  vs Let-Dueo-handle-it).
 - P1: **Section 3 (Contacts)** — Primary/Escalation-1/Escalation-2 UI writing to
   `payment_hub_contacts`.
 - P1: **Section 4 (Tone & Approve)** — first real WhatsApp send via the pipe.

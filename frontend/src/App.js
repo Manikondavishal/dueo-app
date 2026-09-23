@@ -10,6 +10,7 @@ import InviteConsume from "./pages/InviteConsume";
 import Login from "./pages/Login";
 import Setup from "./pages/Setup";
 import Today from "./pages/Today";
+import Upload from "./pages/Upload";
 import AdminLeads from "./pages/AdminLeads";
 import AdminUsers from "./pages/AdminUsers";
 import AdminOutbox from "./pages/AdminOutbox";
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/setup" element={<Setup />} />
         <Route path="/today" element={<Today />} />
+        <Route path="/upload" element={<Upload />} />
         <Route path="/admin/leads" element={<AdminLeads />} />
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/outbox" element={<AdminOutbox />} />

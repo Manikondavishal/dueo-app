@@ -23,6 +23,10 @@ export const api = {
   adminSuspend: (id) => client.post(`/admin/users/${id}/suspend`).then((r) => r.data),
   adminRestore: (id) => client.post(`/admin/users/${id}/restore`).then((r) => r.data),
   adminOutbox: () => client.get("/admin/outbox").then((r) => r.data),
+  // hubs (P1)
+  createHubFromUpload: (upload_id) => client.post("/hubs/from-upload", { upload_id }).then((r) => r.data),
+  getHub: (id) => client.get(`/hubs/${id}`).then((r) => r.data),
+  listHubs: () => client.get("/hubs").then((r) => r.data),
 };
 
 export function refId() {
