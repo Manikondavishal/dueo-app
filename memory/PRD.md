@@ -24,6 +24,43 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+  - **Section 6 (Dashboard + Invoice detail) shipped 2026-09-23**: new
+  `backend/app/routers/dashboard.py` mounted at `/api/app`:
+  `GET /dashboard` returns 4 counts (`active`, `promises_due`,
+  `needs_attention`, `paid_this_month`) plus a trimmed hub table + user + org
+  payload; `GET /hubs/{id}/conversation` merges `follow_up_messages` (as
+  "Dueo" sender) with inbound-only `whatsapp_messages` (as client name),
+  optionally appends a self-share info row when `handling_mode="share_myself"`,
+  and sorts oldest→newest. Outbound WhatsApp rows are skipped in the merge
+  so the sent follow-up doesn't appear twice.
+  Frontend `/dashboard` shows greeting + 4 colour-tiered count cards +
+  clickable hubs table. `/hub/:id/detail` has 3 tabs — **Conversation**
+  (chat-style bubbles: white for Dueo, mint for client, butter for
+  self-share), **Details** (all fields at a glance), **Activity**
+  (timestamps). Section 7 is a no-op: `/dev/whatsapp-test` was never built
+  here so there's nothing to delete.
+  **Evidence**: live curl on preview returned `counts={active:1,
+  promises_due:0, needs_attention:0, paid_this_month:0}` with the seeded
+  hub row; unauth → 401; conversation merger showed the Dueo bubble;
+  cross-org → 404. Screenshots verified dashboard + detail (all 3 tabs)
+  render with every `data-testid` present. Tenant isolation is separately
+  covered by `test_tenant_isolation.py` in the pre-existing suite.
+- **Section 5 (Public payment hub) shipped 2026-09-23**: new
+  `backend/app/routers/public_hub.py` prefixed `/api/public/hub`.
+  `GET /{token}` returns a **redacted** hub payload (no `org_id`, `upload_id`,
+  `llm_status`, timestamps of internals) + a chronological timeline assembled
+  from `follow_up_messages`, `whatsapp_messages`, hub `viewed_at`, and
+  `client_response`. First GET also stamps `viewed_at` so the "Client opened
+  this page" event lands automatically. `POST /{token}/confirm` records
+  `{kind:confirmed, payment_date, submitted_at}` (400 on bad date).
+  `POST /{token}/issue` records the note AND flips the hub to
+  `status=disputed` so any future scheduler tick can skip it. `404` on any
+  unknown token. Frontend `PublicHub.jsx` at `/hub/:token` — no Shell,
+  cream background, hero card with **Pay now** (opens business payment
+  details panel — no gateway), **Confirm payment date** (date picker) and
+  **There's an issue** (textarea). Below: vertical timeline with colored
+  dots per event kind + India-locale timestamps. All state changes refresh
+  the timeline in-place.
 - **Section 4 (Tone & Approve) shipped 2026-09-23**: new
   `services/templates.py` holds all 9 static templates (3 tones × 3 categories:
   `initial`, `follow_up`, `escalation`); `render()` does plain `{var}`
@@ -144,14 +181,15 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **NOT built (per instructions)**: invoice upload UX, eligibility, follow-up plan, sending, client payment page,
   WhatsApp, Razorpay, Proof of promise, Shield logic.
 
-## Backlog (next, awaiting go-ahead)
-- P1: **Section 5 (Public payment hub)** — unauthenticated `/hub/:token` page:
-  business name, invoice #, amount, due date, status pill, vertical timeline
-  from `follow_up_messages` + `whatsapp_messages`, Pay Now / Confirm payment
-  date / There's an issue buttons. `GET /api/public/hub/{token}` route.
-- P1: **Section 6 (Dashboard + Invoice detail)** at `/dashboard` and
-  `/hub/:id/detail` — counts, table, Conversation/Details/Activity tabs.
-- P1: **Section 7 — remove `/dev/whatsapp-test`** (never built here anyway).
+## Backlog (next, user-driven)
+- P2: **Scheduler tick for follow-ups** — the follow_up_plan currently only
+  fires the initial message; add a cron worker that reads
+  `next_scheduled_follow_ups` and dispatches via `wa_provider`, respecting
+  hub `status != "disputed"` and the 5-in-30-days cadence.
+- P2: **Mark-as-paid flow** so `paid_this_month` count moves off 0.
+- P2: **Rotate `EMERGENT_EMAIL_KEY`** so real OTP/invite emails deliver.
+- P2: **Twilio production sender + template approvals** so we exit sandbox
+  and can send to any WhatsApp number without join phrases.
 - P1: **Section 2 (Choose-how-to-proceed)** — two-path picker (share-myself
   vs Let-Dueo-handle-it).
 - P1: **Section 3 (Contacts)** — Primary/Escalation-1/Escalation-2 UI writing to

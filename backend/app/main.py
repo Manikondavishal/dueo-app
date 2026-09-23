@@ -8,7 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 from .config import settings
 from .jobs import scheduler
 from .migrations.indexes import run_migrations
-from .routers import admin, appspace, auth, cron, dev, hubs, public, uploads, webhooks, whatsapp
+from .routers import admin, appspace, auth, cron, dashboard, dev, hubs, public, public_hub, uploads, webhooks, whatsapp
 from .security import SecurityMiddleware
 
 logging.basicConfig(
@@ -43,5 +43,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (public, auth, appspace, admin, uploads, webhooks, cron, dev, whatsapp, hubs):
+for r in (public, auth, appspace, admin, uploads, webhooks, cron, dev, whatsapp, hubs, public_hub, dashboard):
     app.include_router(r.router)
