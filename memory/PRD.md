@@ -24,6 +24,16 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **P2 (Review screen) shipped 2026-09-23**: `PATCH /api/hubs/{hub_id}` (auth,
+  tenant-scoped, `409 hub_not_draft` once status leaves draft). Accepts
+  `amount_rupees` (float ≥ 0) and stores integer paise. Frontend `/hub/:id/review`
+  page has a two-column form for invoice number / client / amount / currency /
+  due date + a full-width "How you get paid" textarea. Client-side validation
+  blocks empty fields and bad date format; on success routes to `/hub/:id/preview`
+  (P3 stub). **Evidence**: authenticated PATCH round-trip changed all fields, GET
+  returned the new values, unauth PATCH returned 401, PATCH on a non-draft hub
+  returned 409. Screenshot shows the page pre-filled from the LLM-extracted hub
+  (`INV-0417 / Kestrel Logistics / 85000 / 2026-09-07`).
 - **P1 (invoice upload UI) shipped 2026-09-23**: `POST /api/hubs/from-upload`
   ties together the existing Phase-0 object-storage upload + Gemini LLM extract,
   creates a draft `payment_hub` with extracted fields (invoice_number, client_name,
@@ -82,8 +92,6 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
   WhatsApp, Razorpay, Proof of promise, Shield logic.
 
 ## Backlog (next, awaiting go-ahead)
-- P1: **P2 · Review screen** (`/hub/:id/review`) — editable form of the extracted
-  fields + business payment details; PATCH endpoint on `/api/hubs/{id}` to save.
 - P1: **P3 · Preview screen** (`/hub/:id/preview`) — read-only summary before
   Section 2 branching.
 - P1: **Section 2 (Choose-how-to-proceed)** — two-path picker (share-myself

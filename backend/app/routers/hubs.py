@@ -25,6 +25,15 @@ class FromUploadIn(BaseModel):
     upload_id: str = Field(min_length=1)
 
 
+class PatchHubIn(BaseModel):
+    invoice_number: str | None = Field(default=None, max_length=80)
+    client_name: str | None = Field(default=None, max_length=200)
+    amount_rupees: float | None = Field(default=None, ge=0)
+    currency: str | None = Field(default=None, max_length=8)
+    due_date: str | None = Field(default=None, max_length=32)
+    business_payment_details: str | None = Field(default=None, max_length=2000)
+
+
 def _to_paise(amount) -> int | None:
     """Coerce the LLM's `amount` field (could be int, float, or numeric string
     with commas / rupee sign) into integer paise. Returns None on any failure."""
@@ -92,6 +101,31 @@ async def read_hub(hub_id: str, ctx=Depends(current_context)):
     if not hub or hub.get("org_id") != ctx["org_id"]:
         raise HTTPException(status_code=404, detail="not_found")
     return {"hub": hub}
+
+
+@router.patch("/{hub_id}")
+async def patch_hub(hub_id: str, body: PatchHubIn, ctx=Depends(current_context)):
+    """Editable while the hub is still a draft. Once a follow-up plan has been
+    approved (Section 4) the hub is locked from field edits."""
+    hub = await store.get_payment_hub(hub_id)
+    if not hub or hub.get("org_id") != ctx["org_id"]:
+        raise HTTPException(status_code=404, detail="not_found")
+    if hub.get("status") != "draft":
+        raise HTTPException(status_code=409, detail="hub_not_draft")
+
+    updates: dict = {}
+    data = body.model_dump(exclude_unset=True)
+    if "amount_rupees" in data:
+        v = data.pop("amount_rupees")
+        updates["amount_paise"] = None if v is None else int(round(v * 100))
+    for k in ("invoice_number", "client_name", "currency", "due_date", "business_payment_details"):
+        if k in data:
+            val = data[k]
+            updates[k] = (val.strip() if isinstance(val, str) else val) or None
+    updates["updated_at"] = iso()
+
+    updated = await store.update_payment_hub(hub_id, updates)
+    return {"hub": updated}
 
 
 @router.get("")
