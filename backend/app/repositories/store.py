@@ -7,7 +7,7 @@ webhook_events, scheduler_jobs, scheduler_runs, emails_outbox.
 from datetime import timedelta
 from typing import Any, Optional
 
-from pymongo import ReturnDocument
+from pymongo import ASCENDING, DESCENDING, ReturnDocument
 
 from ..util import iso, utcnow
 from .db import db
@@ -327,11 +327,113 @@ async def latest_login_email(email: str) -> Optional[dict]:
 
 
 # ----------------------------------------------------------------------------
+# WhatsApp messages (Section-1 addition: payment_hub_id links a message to a
+# real invoice; nullable so pre-hub development test rows still fit).
+# ----------------------------------------------------------------------------
+async def upsert_whatsapp_message(doc: dict):
+    """Insert if the provider_sid is new; leave existing rows untouched. Used by
+    the Twilio inbound webhook where retries may deliver the same MessageSid."""
+    key = {"provider_sid": doc["provider_sid"]}
+    await db.whatsapp_messages.update_one(key, {"$setOnInsert": {**doc, "_id": doc["id"]}}, upsert=True)
+
+
+async def insert_whatsapp_message(doc: dict) -> dict:
+    """Insert an outbound row we control (id and provider_sid provided)."""
+    await db.whatsapp_messages.insert_one({**doc, "_id": doc["id"]})
+    return _clean(dict(doc))
+
+
+async def update_whatsapp_status(provider_sid: str, fields: dict):
+    await db.whatsapp_messages.update_one({"provider_sid": provider_sid}, {"$set": fields})
+
+
+async def get_whatsapp_message(provider_sid: str) -> Optional[dict]:
+    return _clean(await db.whatsapp_messages.find_one({"provider_sid": provider_sid}))
+
+
+async def list_whatsapp_for_hub(payment_hub_id: str, limit: int = 200) -> list[dict]:
+    cur = db.whatsapp_messages.find({"payment_hub_id": payment_hub_id}).sort("created_at", 1)
+    return [_clean(d) for d in await cur.to_list(limit)]
+
+
+# ----------------------------------------------------------------------------
+# Payment hubs + contacts + follow-up plans + follow-up messages (Section 1).
+# The Section-1 brief lists 3 collections; a `payment_hubs` collection is added
+# alongside because every listed collection references `payment_hub_id` and no
+# hub-creation flow exists yet.
+# ----------------------------------------------------------------------------
+async def insert_payment_hub(doc: dict) -> dict:
+    await db.payment_hubs.insert_one({**doc, "_id": doc["id"]})
+    return _clean(dict(doc))
+
+
+async def get_payment_hub(hub_id: str) -> Optional[dict]:
+    return _clean(await db.payment_hubs.find_one({"_id": hub_id}))
+
+
+async def get_payment_hub_by_token(token: str) -> Optional[dict]:
+    return _clean(await db.payment_hubs.find_one({"public_token": token}))
+
+
+async def list_payment_hubs_for_org(org_id: str, limit: int = 500) -> list[dict]:
+    cur = db.payment_hubs.find({"org_id": org_id}).sort("created_at", -1)
+    return [_clean(d) for d in await cur.to_list(limit)]
+
+
+async def update_payment_hub(hub_id: str, fields: dict) -> Optional[dict]:
+    await db.payment_hubs.update_one({"_id": hub_id}, {"$set": fields})
+    return await get_payment_hub(hub_id)
+
+
+async def insert_hub_contact(doc: dict) -> dict:
+    await db.payment_hub_contacts.insert_one({**doc, "_id": doc["id"]})
+    return _clean(dict(doc))
+
+
+async def list_hub_contacts(payment_hub_id: str) -> list[dict]:
+    cur = db.payment_hub_contacts.find({"payment_hub_id": payment_hub_id}).sort("created_at", 1)
+    return [_clean(d) for d in await cur.to_list(20)]
+
+
+async def insert_follow_up_plan(doc: dict) -> dict:
+    await db.follow_up_plans.insert_one({**doc, "_id": doc["id"]})
+    return _clean(dict(doc))
+
+
+async def get_follow_up_plan(payment_hub_id: str) -> Optional[dict]:
+    return _clean(await db.follow_up_plans.find_one({"payment_hub_id": payment_hub_id}, sort=[("created_at", -1)]))
+
+
+async def update_follow_up_plan(plan_id: str, fields: dict):
+    await db.follow_up_plans.update_one({"_id": plan_id}, {"$set": fields})
+
+
+async def insert_follow_up_message(doc: dict) -> dict:
+    await db.follow_up_messages.insert_one({**doc, "_id": doc["id"]})
+    return _clean(dict(doc))
+
+
+async def update_follow_up_message(msg_id: str, fields: dict):
+    await db.follow_up_messages.update_one({"_id": msg_id}, {"$set": fields})
+
+
+async def list_follow_up_messages_for_hub(payment_hub_id: str) -> list[dict]:
+    cur = db.follow_up_messages.find({"payment_hub_id": payment_hub_id}).sort("scheduled_for", 1)
+    return [_clean(d) for d in await cur.to_list(500)]
+
+
+async def next_scheduled_follow_ups(cutoff_iso: str, limit: int = 100) -> list[dict]:
+    cur = (
+        db.follow_up_messages.find({"status": "scheduled", "scheduled_for": {"$lte": cutoff_iso}})
+        .sort("scheduled_for", 1)
+    )
+    return [_clean(d) for d in await cur.to_list(limit)]
+
+
+# ----------------------------------------------------------------------------
 # Indexes + migration tracking (kept here so only repositories touch the DB)
 # ----------------------------------------------------------------------------
 async def ensure_indexes():
-    from pymongo import ASCENDING, DESCENDING
-
     await db.users.create_index("email", unique=True)
     await db.waitlist_leads.create_index("work_email", unique=True)
     await db.waitlist_leads.create_index("invite_token_hash", sparse=True)
@@ -352,6 +454,20 @@ async def ensure_indexes():
     await db.uploads.create_index("org_id")
     await db.scheduler_jobs.create_index("status")
     await db.webhook_events.create_index("created_at")
+
+
+async def ensure_indexes_v2():
+    """Section-1 collections: whatsapp_messages, payment_hubs, payment_hub_contacts,
+    follow_up_plans, follow_up_messages."""
+    await db.whatsapp_messages.create_index("provider_sid", unique=True)
+    await db.whatsapp_messages.create_index("payment_hub_id")
+    await db.whatsapp_messages.create_index([("org_id", ASCENDING), ("created_at", DESCENDING)])
+    await db.payment_hubs.create_index("org_id")
+    await db.payment_hubs.create_index("public_token", unique=True, sparse=True)
+    await db.payment_hub_contacts.create_index([("payment_hub_id", ASCENDING), ("role", ASCENDING)])
+    await db.follow_up_plans.create_index([("payment_hub_id", ASCENDING), ("created_at", DESCENDING)])
+    await db.follow_up_messages.create_index("payment_hub_id")
+    await db.follow_up_messages.create_index([("status", ASCENDING), ("scheduled_for", ASCENDING)])
 
 
 async def applied_migrations() -> set[str]:

@@ -24,6 +24,17 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **Twilio WhatsApp pipe (P0 + P4) shipped 2026-09-23**: `WhatsAppProvider` interface,
+  `TwilioWhatsAppProvider` (real, async) + `LogOnlyWhatsAppProvider` (fallback when
+  Twilio creds are missing), inbound webhook at `/api/webhooks/twilio-whatsapp/inbound`
+  and delivery-status webhook at `/api/webhooks/twilio-whatsapp/status`. Signature
+  verification uses `X-Forwarded-Host` (trusted-suffix guarded) + forced `https` +
+  request path — required because the preview ingress presents an internal cluster
+  host to the app. Rows are upserted by `provider_sid` so Twilio retries do not
+  duplicate. Sandbox creds active (`ORG_WHATSAPP_FROM=whatsapp:+14155238886`).
+- **Section 1 collections shipped 2026-09-23**: `whatsapp_messages`, `payment_hubs`,
+  `payment_hub_contacts`, `follow_up_plans`, `follow_up_messages` with indexes.
+  `whatsapp_messages.payment_hub_id` is nullable so inbound test rows fit.
 - **Emergent-managed email key is currently invalid** (`EMERGENT_EMAIL_KEY` returns
   `401 invalid X-Email-Key` from `integrations.emergentagent.com`). Real OTP emails
   do NOT deliver until the user rotates the key. The outbox still records every send.
@@ -60,9 +71,20 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
   WhatsApp, Razorpay, Proof of promise, Shield logic.
 
 ## Backlog (next, awaiting go-ahead)
-- P1: Phase 2 — invoice upload + LLM field extraction into invoices collection; setup steps 2–3.
-- P1: follow-up plan engine + email sending via the scheduler tick pipeline (already atomic-claim ready).
-- P2: WhatsApp channel, Razorpay/Stripe payment page, Shield/MSMED, Proof of promise document.
+- P1: **Section 2 (Choose-how-to-proceed)** — build the two-path picker (share-myself
+  vs Let-Dueo-handle-it) that follows Preview. STOP-driven per user's brief.
+- P1: **Section 3 (Contacts)** — Primary/Escalation-1/Escalation-2 UI writing to
+  `payment_hub_contacts`.
+- P1: **Section 4 (Tone & Approve)** — first real WhatsApp send via the pipe.
+- P1: **Sections 5–7** — public /hub/:token page, /dashboard + /hub/:id/detail,
+  delete /dev/whatsapp-test.
+- P1: **Prerequisite UI still owed** — invoice upload UI (P1), review (P2),
+  preview (P3). The Twilio pipe (P4) is done, but no user flow yet creates a
+  `payment_hub` via UI; the round-trip test exercises the collections via the
+  store directly.
+- P2: Phase 2 — LLM field extraction into `invoices`, setup steps 2–3, real
+  follow-up plan engine + email sending via the scheduler tick.
+- P2: Rotate `EMERGENT_EMAIL_KEY` so real OTP/invite emails deliver.
 
 ## Deployment
 - Env vars in `backend/.env` (+ `.env.example` mirror). GitHub Save + Deploy are user-triggered via the UI.

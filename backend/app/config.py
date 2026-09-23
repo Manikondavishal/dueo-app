@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     MAX_MEMBERS_PER_ORG: int = 1
     CORS_ORIGINS: str = ""
 
+    # Twilio WhatsApp — sandbox by default. See providers/whatsapp.py.
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    ORG_WHATSAPP_FROM: str = ""  # e.g. "whatsapp:+14155238886"
+    TWILIO_VALIDATE_SIGNATURE: bool = True
+
     @property
     def admin_emails(self) -> set[str]:
         return {e.strip().lower() for e in self.ADMIN_EMAILS.split(",") if e.strip()}

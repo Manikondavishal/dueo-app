@@ -5,7 +5,10 @@ from ..repositories import store
 
 logger = logging.getLogger("dueo.migrations")
 
-MIGRATIONS = [("v1_indexes", store.ensure_indexes)]
+MIGRATIONS = [
+    ("v1_indexes", store.ensure_indexes),
+    ("v2_hub_indexes", store.ensure_indexes_v2),
+]
 
 
 async def run_migrations():
