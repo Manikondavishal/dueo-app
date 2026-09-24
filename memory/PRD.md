@@ -24,7 +24,25 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
-  - **Section 6 (Dashboard + Invoice detail) shipped 2026-09-23**: new
+- **2026-09-24 quality pass**: (a) stripped the sole emoji from
+  `services/templates.py` (`("warm","initial")` no longer contains `👋`);
+  audit confirmed zero emoji across all 9 templates. (b) `approve_plan` now
+  snapshots the recipient into `follow_up_messages` (`contact_name`,
+  `contact_phone`, `contact_email`) AND into the `whatsapp_messages` mirror
+  (`to_name`) so a later Contacts replace cannot rewrite an already-sent
+  message's history. New test `test_approve_snapshots_contact_at_send_time`
+  proves the snapshot survives a full contacts overwrite. (c) new
+  `test_dashboard.py` covers counts bucketing, conversation ordering (Dueo →
+  client), outbound-WA dedupe, self-share info row, cross-org 404, unknown-hub
+  404, and empty-org isolation — 6 tests, all green. Full suite: **59 passed**
+  (52 → 59) in serial mode (`pytest -n 0`). Live E2E curl proof: admin login
+  via bootstrap → `/api/app/dashboard` returns `active=1` + Zephyr Retail row
+  → `/api/app/hubs/{id}/conversation` returns a 2-turn Dueo/Zephyr thread
+  sorted oldest→newest. (d) `EMERGENT_EMAIL_KEY` still returns 401 — playbook
+  confirms the exact stale key is what the platform hands us; user must
+  contact `support@emergent.sh` to get a rotated key written into
+  `backend/.env` (self-service rotation is not available for this integration).
+- **Section 6 (Dashboard + Invoice detail) shipped 2026-09-23**: new
   `backend/app/routers/dashboard.py` mounted at `/api/app`:
   `GET /dashboard` returns 4 counts (`active`, `promises_due`,
   `needs_attention`, `paid_this_month`) plus a trimmed hub table + user + org

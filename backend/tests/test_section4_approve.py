@@ -122,6 +122,48 @@ async def test_approve_requires_consent_and_primary():
 
 
 @pytest.mark.asyncio
+async def test_approve_snapshots_contact_at_send_time():
+    """A later Contacts overwrite must NOT rewrite the history of an already-sent
+    follow-up. The follow_up_messages row must carry name/phone/email at send
+    time, and the whatsapp_messages mirror must carry the recipient name too."""
+    hub_id, org_id = await _seed_ready()
+
+    class FakeProvider:
+        async def send_freeform(self, to, body, status_callback=None):
+            return SentMessage(provider_id="SM_snap_1", status="queued")
+
+    with patch("app.routers.hubs.wa_provider", FakeProvider()):
+        from app.routers.hubs import approve_plan, ApproveIn
+        ctx = {"org_id": org_id, "org": {"display_name": "Upload Co"}, "user": {"id": "u1"}}
+        await approve_plan(hub_id, ApproveIn(tone="professional", consent=True), ctx=ctx)
+
+    # Snapshot fields present on the follow_up_messages row
+    fu = await store.list_follow_up_messages_for_hub(hub_id)
+    assert fu and fu[0]["contact_name"] == "Amit Rao"
+    assert fu[0]["contact_phone"] == "+15551234567"
+    assert fu[0]["contact_email"] == "amit@kestrel.co"
+
+    # Snapshot on the whatsapp mirror too
+    wa = await store.list_whatsapp_for_hub(hub_id)
+    assert wa and wa[0]["to_addr"] == "+15551234567"
+    assert wa[0]["to_name"] == "Amit Rao"
+
+    # Now REPLACE the contacts (Section-3 semantics) with a totally different person
+    await store.replace_hub_contacts(hub_id, [{
+        "id": new_id(), "payment_hub_id": hub_id, "role": "poc",
+        "name": "Priya Nair", "phone": "+15559999999",
+        "email": "priya@else.co", "created_at": iso(),
+    }])
+    # The already-sent message MUST still reflect the original recipient.
+    fu2 = await store.list_follow_up_messages_for_hub(hub_id)
+    assert fu2[0]["contact_name"] == "Amit Rao"
+    assert fu2[0]["contact_phone"] == "+15551234567"
+    wa2 = await store.list_whatsapp_for_hub(hub_id)
+    assert wa2[0]["to_addr"] == "+15551234567"
+    assert wa2[0]["to_name"] == "Amit Rao"
+
+
+@pytest.mark.asyncio
 async def test_approve_records_send_failure_but_still_creates_plan():
     hub_id, org_id = await _seed_ready()
 

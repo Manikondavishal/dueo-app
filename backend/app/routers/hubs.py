@@ -293,9 +293,14 @@ async def approve_plan(hub_id: str, body: ApproveIn, ctx=Depends(current_context
         "status": "approved", "approved_at": now, "created_at": now,
         "approved_by": ctx["user"]["id"],
     })
+    # Snapshot the recipient at send-time so a later Contacts overwrite can't
+    # rewrite the history of a message that already went out.
     msg = await store.insert_follow_up_message({
         "id": new_id(), "payment_hub_id": hub_id, "plan_id": plan["id"],
-        "contact_role": "poc", "channel": "whatsapp", "category": "initial",
+        "contact_role": "poc",
+        "contact_name": poc["name"], "contact_phone": poc["phone"],
+        "contact_email": poc["email"],
+        "channel": "whatsapp", "category": "initial",
         "body": body_text, "status": "scheduled", "scheduled_for": now,
         "sent_at": None, "created_at": now,
     })
@@ -308,7 +313,8 @@ async def approve_plan(hub_id: str, body: ApproveIn, ctx=Depends(current_context
         await store.insert_whatsapp_message({
             "id": new_id(), "provider_sid": sent.provider_id,
             "direction": "outbound", "channel": "whatsapp",
-            "from_addr": None, "to_addr": poc["phone"], "body": body_text,
+            "from_addr": None, "to_addr": poc["phone"],
+            "to_name": poc["name"], "body": body_text,
             "num_media": 0, "status": sent.status, "payment_hub_id": hub_id,
             "org_id": ctx["org_id"], "created_at": iso(),
         })

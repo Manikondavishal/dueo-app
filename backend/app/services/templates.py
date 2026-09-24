@@ -57,7 +57,7 @@ TEMPLATES: dict[tuple[str, str], str] = {
     ),
     # --- WARM ---------------------------------------------------------------
     ("warm", "initial"): (
-        "Hey {client_first_name}! 👋\n\n"
+        "Hey {client_first_name},\n\n"
         "Just a friendly nudge — invoice {invoice_number} for {amount} was due "
         "{due_date}. All good on your end?\n\n"
         "Here's the payment page whenever you're ready: {payment_link}\n\n"
