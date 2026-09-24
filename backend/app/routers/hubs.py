@@ -318,9 +318,15 @@ async def approve_plan(hub_id: str, body: ApproveIn, ctx=Depends(current_context
             "num_media": 0, "status": sent.status, "payment_hub_id": hub_id,
             "org_id": ctx["org_id"], "created_at": iso(),
         })
+        email_result = await follow_ups._send_email_fallback(
+            to=poc.get("email"), hub=hub, category="initial",
+            text_body=body_text, business_name=business_name,
+        )
         await store.update_follow_up_message(msg["id"], {
             "status": "sent", "sent_at": iso(),
             "provider_sid": sent.provider_id, "provider_status": sent.status,
+            "email_status": (email_result or {}).get("status"),
+            "email_provider_id": (email_result or {}).get("provider_id"),
         })
     except Exception as e:  # noqa: BLE001
         send_err = str(e)[:400]

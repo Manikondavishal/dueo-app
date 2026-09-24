@@ -14,7 +14,9 @@ invariant is enforced from a single place:
    Atomically flips each due row from `scheduled` → `dispatching`, checks the
    hub is still eligible (`status == "active"` — paused if paid/disputed),
    sends via the WhatsApp provider, mirrors an outbound row into
-   `whatsapp_messages`, and finalises the row to `sent` / `failed` / `skipped`.
+   `whatsapp_messages`, ALSO fires an email fallback to `contact_email` via
+   the existing email pipe (independent success/failure — email failure never
+   fails the WA row), and finalises the row to `sent` / `failed` / `skipped`.
 
 Cadence (from `due_date`, dispatched at 09:00 UTC on the target day):
     day 3   : POC follow_up
@@ -26,8 +28,10 @@ module is called, so the plan is a "5-message" plan end-to-end.
 """
 import logging
 from datetime import datetime, timedelta, timezone
+from html import escape
 from typing import Optional
 
+from ..providers import email as email_provider
 from ..providers.whatsapp import provider as wa_provider
 from ..repositories import store
 from ..services import templates as tmpl
@@ -43,6 +47,59 @@ SCHEDULE: list[tuple[int, str, str]] = [
     (14, "escalation_1", "escalation"),
     (30, "escalation_1", "escalation"),
 ]
+
+_SUBJECT_BY_CATEGORY = {
+    "initial": "Invoice {inv} — payment link inside",
+    "follow_up": "Reminder: invoice {inv}",
+    "escalation": "Overdue: invoice {inv}",
+}
+
+
+def _subject(hub: dict, category: str) -> str:
+    inv = hub.get("invoice_number") or "—"
+    return _SUBJECT_BY_CATEGORY.get(category, _SUBJECT_BY_CATEGORY["follow_up"]).format(inv=inv)
+
+
+def _html_body(text_body: str, business_name: str) -> str:
+    """Wrap a plain-text WhatsApp body in a safe email shell. Text is escaped
+    and newlines rendered with white-space:pre-wrap so the message reads the
+    same in email as it does on WhatsApp; the `{payment_link}` URL already
+    interpolated into `text_body` is left as plain text so email clients
+    auto-linkify it (adding a real <a> is fine, but this passes
+    `_assert_safe_email` without any anchor-host cross-checks)."""
+    safe_business = escape(business_name or "your team")
+    safe_body = escape(text_body or "")
+    return (
+        '<table role="presentation" width="100%"><tr><td '
+        'style="padding:24px;font-family:Arial,sans-serif;max-width:600px">'
+        f'<p style="white-space:pre-wrap;font-size:15px;line-height:1.55;'
+        f'color:#111">{safe_body}</p>'
+        f'<p style="font-size:12px;color:#888;margin-top:24px">Sent by '
+        f'{safe_business}. This is a payment follow-up — we never ask for a '
+        f'password or card details by email.</p></td></tr></table>'
+    )
+
+
+async def _send_email_fallback(
+    *, to: str | None, hub: dict, category: str, text_body: str,
+    business_name: str,
+) -> dict | None:
+    """Fire the email fallback to the recipient's snapshotted address. Any
+    exception is caught + logged — an email failure MUST NOT fail the WA
+    send. Returns the outbox result on best-effort success; None if no email
+    address is on file or the send raised."""
+    if not to:
+        return None
+    try:
+        subject = _subject(hub, category)
+        html = _html_body(text_body, business_name)
+        return await email_provider.send_email(
+            to=to, subject=subject, html=html, kind="follow_up",
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning("email fallback failed to=%s hub=%s: %s",
+                       to, hub.get("id"), str(e)[:200])
+        return None
 
 
 def _at_9am_utc(day: str, offset_days: int) -> str:
@@ -136,11 +193,19 @@ async def dispatch_due(now_iso: Optional[str] = None, limit: int = 50) -> dict:
                 "org_id": hub["org_id"],
                 "created_at": iso(),
             })
+            email_result = await _send_email_fallback(
+                to=claimed.get("contact_email"), hub=hub,
+                category=claimed.get("category") or "follow_up",
+                text_body=claimed["body"],
+                business_name=(await store.get_org(hub["org_id"]) or {}).get("display_name", ""),
+            )
             await store.update_follow_up_message(claimed["id"], {
                 "status": "sent",
                 "sent_at": iso(),
                 "provider_sid": result.provider_id,
                 "provider_status": result.status,
+                "email_status": (email_result or {}).get("status"),
+                "email_provider_id": (email_result or {}).get("provider_id"),
             })
             sent += 1
         except Exception as e:  # noqa: BLE001

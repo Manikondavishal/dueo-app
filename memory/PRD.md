@@ -24,6 +24,25 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **2026-09-24 Email fallback shipped**: every WhatsApp send from `approve_plan`
+  and `dispatch_due` now fires an INDEPENDENT email to the snapshotted
+  `contact_email` via the existing `providers.email.send_email` pipe (kind=
+  `follow_up`). Same body, wrapped in a minimal `<table>` HTML shell with
+  `white-space:pre-wrap` so it reads identically to WhatsApp. Email failures
+  are caught + logged and NEVER fail the WA row — the row records
+  `email_status` / `email_provider_id` for observability. Subject-per-category:
+  "Invoice X — payment link inside" / "Reminder: invoice X" / "Overdue:
+  invoice X". Rows with no contact_email skip the email path entirely. Even
+  today with `EMERGENT_EMAIL_KEY=401`, every send lands in `emails_outbox`
+  with `status=failed` so the flow is provable; once the key is rotated,
+  every new approve/dispatch auto-delivers.
+  New tests `test_email_fallback.py` (3 cases: email fires on every dispatch,
+  email failure leaves WA success intact, no-email-on-row is skipped). Full
+  suite: **65 passed** serial. **Retry** (backoff on failed rows) and
+  **Contact Change Warning** intentionally SKIPPED — atomic claim + snapshot
+  already cover the correctness gaps; retry is a real gap (transient Twilio
+  5xx parks the row at `failed` forever) but user paused it, contact-change
+  warning is purely UX awareness (snapshot already makes it safe).
 - **2026-09-24 Scheduler Tick + Mark-as-Paid shipped**: new
   `services/follow_ups.py` owns both scheduling (`build_scheduled_rows`) and
   dispatch (`dispatch_due`). On approve, the initial POC message is sent
