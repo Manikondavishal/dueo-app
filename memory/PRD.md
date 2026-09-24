@@ -24,6 +24,19 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **2026-09-24 Conversation shows email (only item taken from that batch)**:
+  `GET /api/app/hubs/{id}/conversation` now returns `email_to` (the
+  snapshotted `contact_email`) + `email_status` on every Dueo `follow_up`
+  entry; client `reply` rows carry neither. `HubDetail.jsx` annotates the
+  SAME bubble (no duplicate email rows) with "Also emailed to x@y ·
+  delivered / email failed / pending" (`data-testid="msg-{i}-email"`),
+  applied to message 1 (approve-time) and the scheduled 2-5 alike. System
+  emails (OTP/invite) are deliberately NOT shown. New test
+  `test_hub_conversation_exposes_email_fallback_state`. Full suite: **66
+  passed** serial. Verified live on preview with a seeded hub — screenshot
+  shows one "delivered" and one "email failed" annotation.
+  Retry, Production Sender and Contact Change Warning remain deliberately
+  skipped per user decision (not oversights).
 - **2026-09-24 Email fallback shipped**: every WhatsApp send from `approve_plan`
   and `dispatch_due` now fires an INDEPENDENT email to the snapshotted
   `contact_email` via the existing `providers.email.send_email` pipe (kind=

@@ -154,3 +154,50 @@ async def test_dashboard_isolation_empty_for_new_org():
     out = await dashboard(ctx=_ctx(ORG_B))
     assert out["counts"] == {"active": 0, "promises_due": 0, "needs_attention": 0, "paid_this_month": 0}
     assert out["hubs"] == []
+
+
+
+@pytest.mark.asyncio
+async def test_hub_conversation_exposes_email_fallback_state():
+    """Every Dueo bubble carries the snapshotted email address + the fallback
+    email's outcome so the Conversation tab can annotate one bubble per send
+    (no duplicate email rows). Client replies never carry email fields."""
+    hub_id = await _seed_hub(ORG_A, "active")
+    await store.insert_follow_up_message({
+        "id": new_id(), "payment_hub_id": hub_id, "plan_id": "p1",
+        "contact_role": "poc", "contact_name": "Amit Rao",
+        "contact_phone": "+15551234567", "contact_email": "amit@k.co",
+        "channel": "whatsapp", "category": "initial",
+        "body": "Hi Amit, invoice due.", "status": "sent",
+        "email_status": "sent", "email_provider_id": "em_1",
+        "scheduled_for": "2026-01-01T09:00:00+00:00",
+        "sent_at": "2026-01-01T09:00:01+00:00", "created_at": iso(),
+    })
+    await store.insert_follow_up_message({
+        "id": new_id(), "payment_hub_id": hub_id, "plan_id": "p1",
+        "contact_role": "poc", "contact_name": "Amit Rao",
+        "contact_phone": "+15551234567", "contact_email": "amit@k.co",
+        "channel": "whatsapp", "category": "follow_up",
+        "body": "Gentle nudge.", "status": "sent",
+        "email_status": "failed",
+        "scheduled_for": "2026-01-04T09:00:00+00:00",
+        "sent_at": "2026-01-04T09:00:01+00:00", "created_at": iso(),
+    })
+    await store.insert_whatsapp_message({
+        "id": new_id(), "provider_sid": "SM_in_2",
+        "direction": "inbound", "channel": "whatsapp",
+        "from_addr": "+15551234567", "to_addr": None,
+        "body": "ok", "num_media": 0, "status": "received",
+        "payment_hub_id": hub_id, "org_id": ORG_A,
+        "received_at": "2026-01-05T10:00:00+00:00",
+        "created_at": "2026-01-05T10:00:00+00:00",
+    })
+
+    thread = (await hub_conversation(hub_id, ctx=_ctx(ORG_A)))["thread"]
+    dueo = [t for t in thread if t["kind"] == "follow_up"]
+    assert len(dueo) == 2  # still one bubble per send, no separate email rows
+    assert dueo[0]["email_to"] == "amit@k.co"
+    assert dueo[0]["email_status"] == "sent"
+    assert dueo[1]["email_status"] == "failed"
+    reply = next(t for t in thread if t["kind"] == "reply")
+    assert reply.get("email_to") is None

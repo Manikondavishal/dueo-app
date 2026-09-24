@@ -133,6 +133,14 @@ export default function HubDetail() {
                   <div style={{ maxWidth: 560, background: bg, borderRadius: 20, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--muted)" }}>{m.sender} · {m.channel || "—"}{m.status ? ` · ${m.status}` : ""}</span>
                     <span style={{ fontSize: 15, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{m.body}</span>
+                    {isDueo && m.email_to && (
+                      <span data-testid={`msg-${i}-email`} style={{ fontSize: 11, color: "var(--muted)", borderTop: "1px solid rgba(0,0,0,.07)", paddingTop: 6 }}>
+                        Also emailed to {m.email_to} ·{" "}
+                        <b style={{ color: m.email_status === "sent" ? "var(--ink)" : m.email_status ? "#b3261e" : "var(--muted)" }}>
+                          {m.email_status === "sent" ? "delivered" : m.email_status === "failed" ? "email failed" : m.status === "sent" ? "no email record" : "pending"}
+                        </b>
+                      </span>
+                    )}
                     <span className="mono" style={{ fontSize: 11, color: "var(--muted)" }}>{niceTs(m.at)}</span>
                   </div>
                 </div>

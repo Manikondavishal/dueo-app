@@ -59,6 +59,10 @@ async def hub_conversation(hub_id: str, ctx=Depends(current_context)):
             "body": m.get("body"),
             "status": m.get("status"),
             "category": m.get("category"),
+            # Email fallback visibility — the same body also goes out by email
+            # to the snapshotted address; surfaced on the same bubble.
+            "email_to": m.get("contact_email"),
+            "email_status": m.get("email_status"),
         })
     for m in wa:
         if m.get("direction") == "outbound":
