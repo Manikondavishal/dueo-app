@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # Twilio WhatsApp — sandbox by default. See providers/whatsapp.py.
     TWILIO_ACCOUNT_SID: str = ""
     TWILIO_AUTH_TOKEN: str = ""
-    ORG_WHATSAPP_FROM: str = ""  # e.g. "whatsapp:+14155238886"
+    ORG_WHATSAPP_FROM: str = ""  # e.g. "whatsapp:+17372508034"
     TWILIO_VALIDATE_SIGNATURE: bool = True
 
     @property

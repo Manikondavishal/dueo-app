@@ -24,6 +24,18 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **2026-09-24 Twilio sandbox number changed**: `ORG_WHATSAPP_FROM` moved from
+  `whatsapp:+14155238886` to `whatsapp:+17372508034` in `backend/.env` and
+  `.env.example`; backend restarted and `settings.ORG_WHATSAPP_FROM` verified
+  live. Webhook URLs are UNCHANGED (the sender number is not part of them):
+  inbound `POST {APP_URL}/api/webhooks/twilio-whatsapp/inbound`, status
+  callback `POST {APP_URL}/api/webhooks/twilio-whatsapp/status`. Verified on
+  preview: unsigned POST → 403 on both; correctly signed POST (signature
+  computed over the exact `APP_URL` + path) → 200 on both, so the
+  `X-Forwarded-Host` URL-reconstruction still matches what Twilio signs.
+  Note: the sandbox number is NOT in `IncomingPhoneNumbers` (expected — the
+  sandbox sender is not a purchased number), and each recipient must re-send
+  the sandbox join phrase to the NEW number; old joins do not carry over.
 - **2026-09-24 Conversation shows email (only item taken from that batch)**:
   `GET /api/app/hubs/{id}/conversation` now returns `email_to` (the
   snapshotted `contact_email`) + `email_status` on every Dueo `follow_up`
