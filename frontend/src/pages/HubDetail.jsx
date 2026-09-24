@@ -22,6 +22,8 @@ export default function HubDetail() {
   const [tab, setTab] = useState("conversation");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [marking, setMarking] = useState(false);
+  const [markErr, setMarkErr] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -45,6 +47,20 @@ export default function HubDetail() {
 
   const orgName = ctx?.org?.display_name || "";
   const poc = useMemo(() => contacts.find((c) => c.role === "poc"), [contacts]);
+
+  async function onMarkPaid() {
+    if (!hub || hub.status === "paid") return;
+    if (!window.confirm(`Mark invoice ${hub.invoice_number || ""} as paid? This cancels every scheduled follow-up.`)) return;
+    setMarking(true); setMarkErr("");
+    try {
+      const { hub: updated } = await api.markHubPaid(id);
+      setHub(updated);
+    } catch (e) {
+      setMarkErr(e?.response?.data?.detail || "Could not mark as paid.");
+    } finally {
+      setMarking(false);
+    }
+  }
 
   if (loading) return <Shell active="today" orgName=""><Skeleton h={420} r={32} /></Shell>;
   if (err) return (
@@ -72,7 +88,25 @@ export default function HubDetail() {
           </div>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <span className="disp num" style={{ fontSize: "clamp(48px,8vw,80px)", lineHeight: 1 }} data-testid="detail-amount">{formatRupees(hub.amount_paise)}</span>
-            <span style={{ fontSize: 15, color: "var(--ink-soft)" }}>Due {hub.due_date || "—"} · Status <strong>{hub.status}</strong></span>
+            <span style={{ fontSize: 15, color: "var(--ink-soft)" }}>Due {hub.due_date || "—"} · Status <strong data-testid="detail-status">{hub.status}</strong></span>
+          </div>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            {hub.status !== "paid" ? (
+              <button
+                onClick={onMarkPaid}
+                disabled={marking}
+                data-testid="mark-paid-btn"
+                style={{
+                  height: 48, padding: "0 22px", borderRadius: 999,
+                  border: "none", background: "var(--mint)", color: "var(--ink)",
+                  fontWeight: 700, cursor: marking ? "wait" : "pointer",
+                  opacity: marking ? 0.7 : 1,
+                }}
+              >{marking ? "Marking…" : "Mark as paid"}</button>
+            ) : (
+              <span data-testid="mark-paid-badge" style={{ height: 40, padding: "0 18px", borderRadius: 999, background: "var(--mint)", color: "var(--ink)", fontWeight: 700, display: "inline-flex", alignItems: "center" }}>Paid on {hub.paid_at?.slice(0,10) || "—"}</span>
+            )}
+            {markErr && <span data-testid="mark-paid-err" style={{ color: "var(--coral-ink,#7a2d2d)", fontSize: 13 }}>{markErr}</span>}
           </div>
         </div>
 

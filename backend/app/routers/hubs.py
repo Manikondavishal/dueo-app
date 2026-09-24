@@ -16,7 +16,7 @@ from ..providers import storage
 from ..providers.llm import llm_provider
 from ..providers.whatsapp import provider as wa_provider
 from ..repositories import store
-from ..services import templates as tmpl
+from ..services import follow_ups, templates as tmpl
 from ..util import gen_token, iso, new_id
 
 logger = logging.getLogger("dueo.hubs")
@@ -329,10 +329,41 @@ async def approve_plan(hub_id: str, body: ApproveIn, ctx=Depends(current_context
             "status": "failed", "error": send_err,
         })
 
+    # Schedule messages 2..5 up-front, snapshotting the recipient into each row
+    # so a later Contacts overwrite cannot rewrite an already-scheduled send.
+    esc1 = next((c for c in contacts if c["role"] == "escalation_1"), None)
+    scheduled_rows = follow_ups.build_scheduled_rows(
+        hub=hub, plan_id=plan["id"], tone=body.tone, poc=poc, esc1=esc1,
+        business_name=business_name, public_base=(ctx.get("app_url") or ""),
+    )
+    await store.insert_follow_up_messages_bulk(scheduled_rows)
+
     await store.update_payment_hub(hub_id, {"status": "active", "updated_at": iso()})
-    updated_msg = await store.list_follow_up_messages_for_hub(hub_id)
+    initial_msg = (await store.get_follow_up_message(msg["id"])) or msg
     return {
         "plan": plan,
-        "message": updated_msg[0] if updated_msg else msg,
+        "message": initial_msg,
+        "scheduled": scheduled_rows,
         "send_error": send_err,
     }
+
+
+@router.post("/{hub_id}/mark-paid")
+async def mark_paid(hub_id: str, ctx=Depends(current_context)):
+    """Owner marks the invoice as paid. Flips the hub to `status=paid`,
+    cancels every still-scheduled follow-up so no more sends fire, and
+    records the actor + timestamp for the activity log."""
+    hub = await store.get_payment_hub(hub_id)
+    if not hub or hub.get("org_id") != ctx["org_id"]:
+        raise HTTPException(status_code=404, detail="not_found")
+    if hub.get("status") == "paid":
+        return {"hub": hub, "canceled": 0, "already_paid": True}
+    canceled = await store.cancel_scheduled_follow_ups(hub_id, reason="marked_paid")
+    now = iso()
+    updated = await store.update_payment_hub(hub_id, {
+        "status": "paid",
+        "paid_at": now,
+        "paid_by": ctx["user"]["id"],
+        "updated_at": now,
+    })
+    return {"hub": updated, "canceled": canceled, "already_paid": False}

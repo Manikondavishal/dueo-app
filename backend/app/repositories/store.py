@@ -427,6 +427,10 @@ async def update_follow_up_message(msg_id: str, fields: dict):
     await db.follow_up_messages.update_one({"_id": msg_id}, {"$set": fields})
 
 
+async def get_follow_up_message(msg_id: str) -> Optional[dict]:
+    return _clean(await db.follow_up_messages.find_one({"_id": msg_id}))
+
+
 async def list_follow_up_messages_for_hub(payment_hub_id: str) -> list[dict]:
     cur = db.follow_up_messages.find({"payment_hub_id": payment_hub_id}).sort("scheduled_for", 1)
     return [_clean(d) for d in await cur.to_list(500)]
@@ -438,6 +442,35 @@ async def next_scheduled_follow_ups(cutoff_iso: str, limit: int = 100) -> list[d
         .sort("scheduled_for", 1)
     )
     return [_clean(d) for d in await cur.to_list(limit)]
+
+
+async def insert_follow_up_messages_bulk(docs: list[dict]) -> None:
+    if not docs:
+        return
+    await db.follow_up_messages.insert_many([{**d, "_id": d["id"]} for d in docs])
+
+
+async def claim_scheduled_follow_up(cutoff_iso: str) -> Optional[dict]:
+    """Atomically flip one due row from `scheduled` -> `dispatching`. Returns
+    the claimed doc, or None when nothing is due. Two racing scheduler ticks
+    can never see the same row."""
+    doc = await db.follow_up_messages.find_one_and_update(
+        {"status": "scheduled", "scheduled_for": {"$lte": cutoff_iso}},
+        {"$set": {"status": "dispatching", "claimed_at": iso()}},
+        sort=[("scheduled_for", 1)],
+        return_document=ReturnDocument.AFTER,
+    )
+    return _clean(doc)
+
+
+async def cancel_scheduled_follow_ups(payment_hub_id: str, reason: str) -> int:
+    """Move every still-scheduled row for this hub to `canceled`. Called by
+    the Mark-as-paid endpoint so no more sends fire after payment is booked."""
+    r = await db.follow_up_messages.update_many(
+        {"payment_hub_id": payment_hub_id, "status": "scheduled"},
+        {"$set": {"status": "canceled", "canceled_reason": reason, "updated_at": iso()}},
+    )
+    return r.modified_count
 
 
 # ----------------------------------------------------------------------------

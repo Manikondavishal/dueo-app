@@ -9,7 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from ..repositories import store
-from ..services import audit
+from ..services import audit, follow_ups
 from ..util import canonical_json, iso, new_id, sha256_hex
 
 logger = logging.getLogger("dueo.scheduler")
@@ -22,6 +22,14 @@ async def scheduler_tick(worker_id: str = "scheduler-1") -> dict | None:
     if not claimed:
         return None
     await store.complete_job(claimed["id"])
+    # Dispatch any follow-up messages whose scheduled_for has arrived. Wrapped
+    # so a bad row can never crash the heartbeat run.
+    try:
+        summary = await follow_ups.dispatch_due()
+        if summary["sent"] or summary["failed"] or summary["skipped"]:
+            logger.info("follow_ups dispatched %s", summary)
+    except Exception as e:  # noqa: BLE001
+        logger.error("follow_ups dispatch crashed: %s", str(e)[:300])
     run = {"id": new_id(), "job_id": claimed["id"], "worker": worker_id, "at": iso()}
     await store.record_run(run)
     return run

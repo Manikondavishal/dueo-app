@@ -24,6 +24,38 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **2026-09-24 Scheduler Tick + Mark-as-Paid shipped**: new
+  `services/follow_ups.py` owns both scheduling (`build_scheduled_rows`) and
+  dispatch (`dispatch_due`). On approve, the initial POC message is sent
+  immediately AND rows 2-5 are persisted with `status=scheduled` — cadence
+  is day 3/7/14/30 after `due_date` at 09:00 UTC, POC on 2 & 3, escalation_1
+  on 4 & 5 (fallback to POC follow_up when no esc_1). Every scheduled row
+  carries a full `contact_name/phone/email` snapshot from approve time, so
+  the confirmed replace-semantics on `payment_hub_contacts` cannot rewrite
+  future sends (SECTION-8 warn/re-approve UI still pending). The
+  APScheduler `scheduler_tick` (every minute, existing infra) now calls
+  `dispatch_due`, which uses `store.claim_scheduled_follow_up` (atomic
+  find_one_and_update flipping `scheduled → dispatching`) so racing workers
+  cannot double-send. Paid/disputed hubs are recorded as `skipped` with a
+  `skip_reason` so nothing silently vanishes. Send failures land as
+  `status=failed` with the error preserved — no retry yet (backlog).
+  New endpoint `POST /api/hubs/{id}/mark-paid` (auth, tenant-scoped, 404
+  cross-org) flips the hub to `status=paid` + records `paid_at/paid_by`,
+  cancels every still-scheduled follow-up via
+  `store.cancel_scheduled_follow_ups` (already-sent rows untouched),
+  idempotent (2nd call returns `already_paid=true` with 0 canceled). Frontend
+  `HubDetail.jsx` shows a mint "Mark as paid" button with confirm dialog,
+  swaps to a "Paid on YYYY-MM-DD" badge post-flip; `data-testid`
+  `mark-paid-btn` / `mark-paid-badge` / `mark-paid-err`. New tests:
+  `test_scheduler_dispatch.py` (5 cases: cadence + snapshot, ready-window
+  filter, paid-hub skip, per-row failure isolation, atomic-claim uniqueness);
+  `test_mark_paid.py` (4 cases: flip + cancel, idempotency, already-sent
+  untouched, cross-org 404). Live E2E curl: seeded hub with 2 scheduled →
+  POST /mark-paid → 200 `{status:paid, canceled:2}` → dashboard
+  `paid_this_month=1` → 2nd POST returns `already_paid=true, canceled=0` →
+  scheduled rows now `canceled` with reason `marked_paid`.
+  Full suite: **62 passed** serial. Production sender + Section-8 contact-
+  change warn-on-approve remain in backlog per user hold.
 - **2026-09-24 quality pass**: (a) stripped the sole emoji from
   `services/templates.py` (`("warm","initial")` no longer contains `👋`);
   audit confirmed zero emoji across all 9 templates. (b) `approve_plan` now

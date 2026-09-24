@@ -32,6 +32,7 @@ export const api = {
   saveHubContacts: (id, payload) => client.post(`/hubs/${id}/contacts`, payload).then((r) => r.data),
   previewMessages: (id, tone) => client.get(`/hubs/${id}/preview-messages`, { params: { tone } }).then((r) => r.data),
   approveHub: (id, payload) => client.post(`/hubs/${id}/approve`, payload).then((r) => r.data),
+  markHubPaid: (id) => client.post(`/hubs/${id}/mark-paid`).then((r) => r.data),
   listHubs: () => client.get("/hubs").then((r) => r.data),
 };
 
