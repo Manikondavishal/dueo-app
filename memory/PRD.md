@@ -24,6 +24,25 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **2026-09-25 LIVE EMAIL PROOF — real delivery confirmed**: own Resend key
+  written to `backend/.env` (`RESEND_API_KEY`, 36 chars, `re_` prefix),
+  backend restarted. Ran `backend/live_email_proof.py`, which refuses to run
+  on an empty/malformed key, seeds an active user for the Resend
+  account-owner address and then executes the REAL
+  `services.auth.request_code` path. Result:
+  `to=whymancreates.studio@gmail.com`, `from=Dueo <onboarding@resend.dev>`,
+  outbox row `status=sent`, `provider_id=01a0d7d2-fb27-770a-affe-c6e121057cc6`.
+  Independently confirmed against Resend's own API:
+  `GET https://api.resend.com/emails/{id}` → 200 with
+  `last_event="delivered"`, subject "Your Dueo sign-in code". This is a
+  genuine delivery, not fixture data.
+  Also probed the documented `resend.dev` restriction with a real call to a
+  non-owner recipient — see the recorded outbox error; this is why a verified
+  domain is still required before client follow-ups can land.
+  NOTE: the key was pasted in chat, so it lives in conversation history —
+  rotate it in Resend once WhatsApp + email are both signed off.
+  Skipped per user: Verify Domain, Retry, Delivery Badges (until email +
+  WhatsApp are both confirmed end to end).
 - **2026-09-24 Email moved to OUR OWN Resend key**: `providers/email.py` now
   POSTs directly to `https://api.resend.com/emails` with
   `Authorization: Bearer $RESEND_API_KEY`, `User-Agent: dueo-api/1.0` (Resend
