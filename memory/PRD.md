@@ -24,6 +24,36 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **2026-09-25 WhatsApp sender mismatch fixed (the real cause)**:
+  `ORG_WHATSAPP_FROM` reverted `whatsapp:+17372508034` →
+  `whatsapp:+14155238886`, the sandbox the user's phone `+916300886029` is
+  actually joined to (the 2026-09-24 "sandbox number changed" move was wrong
+  for this account). Stale number swept from `.env`, `.env.example`,
+  `app/config.py` comment and `tests/test_whatsapp_pipe.py`.
+  Proof the revert is real: the SAME live send to `+916300886029` changed its
+  Twilio error from `422 "No Twilio trial phone number is assigned for
+  messaging to this destination number"` (wrong sandbox → recipient unknown)
+  to `400 "ContentSid Required"` (recipient recognised; freeform now needs an
+  open 24-hour customer-initiated session or an approved template). So the
+  remaining blocker is Twilio's session-window policy, NOT our config: the
+  phone must message `+1 415 523 8886`, then freeform delivers for 24h.
+  Twilio account context: `ACdba81…` "My First Twilio Account", **Trial**,
+  all-time SMS usage 0, Messages log empty, no purchased numbers, no verified
+  caller IDs — nothing has ever flowed through this account.
+  `+917013248755` (the earlier failing target) is NOT test data: it is the
+  `mobile` field on the real waitlist lead `vishal@oddenough.in`, entered on
+  the signup form 2026-09-20. Testing agent iteration_4: 0 critical / 0 minor
+  — webhook signature paths, inbound idempotency, status callback, both
+  sign-ins, dashboard + hub detail render all green.
+- **Leftover test data audit (2026-09-25, preview DB)**: real records are NOT
+  polluted, but test rows sit alongside them — users 223 (2 real), orgs 26
+  (2 real: `org_e2e_5055d9d1` "Alpha Traders", `5d1f217a…` "Whyman Creates"),
+  organization_members 84, sessions 167, audit_events 1174, scheduler_runs
+  1023, emails_outbox 39, uploads 13, waitlist_leads 1 (the one real lead).
+  `payment_hubs` / `payment_hub_contacts` / `follow_up_*` / `whatsapp_messages`
+  are EMPTY — the test fixtures wipe them wholesale, which is also why the
+  seeded demo hub disappeared. Cleanup of the users/orgs/sessions backlog is
+  offered but NOT yet done.
 - **2026-09-25 retest green (iteration_3)**: testing agent verified 0 critical /
   0 minor. Both real accounts sign in and reach the dashboard (200), admin
   pages 200, `fix_owner_and_cleanup.py` idempotent, `bootstrap-code`

@@ -1,0 +1,35 @@
+{
+  "summary": "Verified the ORG_WHATSAPP_FROM revert to whatsapp:+14155238886. Config is correct in the LIVE app settings; TwilioWhatsAppProvider (not the LogOnly fallback) is selected. No stale '17372508034' remains anywhere in backend/, frontend/, .env, or tests. All webhook paths still work under the restored sandbox pair: unsigned inbound and status both return 403 invalid_twilio_signature; correctly signed inbound returns 200 with empty TwiML and persists exactly one row per MessageSid (idempotent under retries); correctly signed status callback returns 200 and flips that row's status to 'delivered'. Sign-in regression green for BOTH accounts via request-code -> bootstrap-code -> verify, with /api/app/dashboard 200 and /api/admin/leads 200 on both. Full backend suite: 88 passed / 1 expected re-seed failure (test_iteration2_bug.TestLeadsCleanup, mitigated by python fix_owner_and_cleanup.py per the review note). Frontend smoke as signed-in owner: dashboard renders (name 'studio odd enough', counts, missamma row, channels widget) with ZERO console errors; hub detail page at /hub/<id>/detail renders (Conversation/Details/Activity tabs, Mark as paid CTA, org activity note) with ZERO console errors. Login page renders correctly and surfaces error state properly when a code is invalid (nice error UX).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration4_whatsapp_webhook_live.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional doc hygiene: /app/memory/test_credentials.md still says 'Sender (ORG_WHATSAPP_FROM): whatsapp:+17372508034 (changed 2026-09-24 from whatsapp:+14155238886)'. This is now stale — the sender was reverted back to +14155238886. Consider updating that memo so future agents don't chase a wrong sandbox number."
+  ],
+  "critical_code_review_comments": [
+    "Nothing critical for this iteration's scope. The sandbox sender revert is clean: single source of truth (settings.ORG_WHATSAPP_FROM) is read at send time, provider selection falls back to LogOnly only when creds/sender are missing, and the signature validator is built off the reconstructed external URL. Suggest also automating the 'run fix_owner_and_cleanup.py after pytest' step (e.g., a pytest session-teardown or a Makefile target) so admin/leads doesn't need manual repair after every suite run."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration4_whatsapp_webhook_live.py (new — 5 signed-webhook tests against the live preview URL)"
+  ],
+  "success_rate": {
+    "backend": "100% (89/89 once fix_owner_and_cleanup.py is run; 88/89 immediately after pytest as expected)",
+    "frontend": "100% (dashboard + hub detail render for signed-in owner, no console errors)"
+  },
+  "test_credentials": "Both accounts from /app/memory/test_credentials.md verified working: vishalmanikonda@icloud.com and whymancreates.studio@gmail.com via request-code -> GET /api/admin/bootstrap-code?token=CRON_SECRET -> verify.",
+  "seed_data_creation": "None. The webhook tests insert whatsapp_messages rows with SM_test_* / SM_idem_* / SM_stat_* provider_sid values (harmless test rows in the whatsapp_messages collection, org_id=null).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The whatsapp_messages collection stores the Twilio MessageSid at BOTH `_id` and `provider_sid` (not `message_sid` or `provider_message_id`). If you extend the pipe tests, query on `provider_sid` or `_id`. TwilioWhatsAppProvider is the active provider (verified from settings.ORG_WHATSAPP_FROM = whatsapp:+14155238886). The one persistently 'failing' backend test (test_iteration2_bug.TestLeadsCleanup.test_admin_leads_no_test_rows) is by design a post-suite hygiene check — run `cd /app/backend && python fix_owner_and_cleanup.py` to clear it, per test_credentials.md.",
+  "rca of the issue": "The original bug (outbound WhatsApp failure) was a config drift: ORG_WHATSAPP_FROM had been changed to whatsapp:+17372508034 but the recipient +916300886029 was joined to the ORIGINAL sandbox number whatsapp:+14155238886. Twilio therefore rejected sends with 422 'No Twilio trial phone number is assigned for messaging to this destination number'. Fix (already applied by E1): revert ORG_WHATSAPP_FROM to whatsapp:+14155238886 in backend/.env and .env.example, remove the stale +17372508034 from app/config.py comment and tests/test_whatsapp_pipe.py fixtures, restart backend. Post-fix, live sends surface Twilio 400 'ContentSid Required' — this is expected Twilio policy (freeform requires an open 24h customer-initiated session or an approved template) and is the user's next action, NOT a code defect. Verified end-to-end from the live app settings + webhook contract tests."
+}
