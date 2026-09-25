@@ -1,0 +1,25 @@
+{
+  "summary": "Retest of iteration_2 CRITICAL. FIX 1 verified: vishalmanikonda@icloud.com signs in end-to-end (request-code -> bootstrap-code -> verify) and GET /api/app/dashboard now returns 200 (was 404 org_not_found). Admin endpoints /api/admin/leads, /api/admin/users, /api/admin/outbox return 200 for both accounts. Full backend suite passes 84/84 serially (pytest -p no:randomly -n 0). Iteration2 bug suite: 9/9. New test_bootstrap_code.py: 5/5. fix_owner_and_cleanup.py is idempotent — running twice leaves both dashboards at 200 and does not error. FIX 2 verified live: bootstrap-code returns usable=True while OTP is active and usable=False after the same code has been consumed (compared_digest matches store.get_active_otp). Security guards intact (wrong token -> 401 invalid_token; no-code address -> 404 no_code; widened for non-admin still works). Regression checks: OWNER (whymancreates.studio@gmail.com) dashboard 200 + admin pages 200. /admin/leads UI shows exactly one real lead vishal@oddenough.in (status 'new') with Approve/Hold/Reject; Users + Outbox tabs render; no @example.com rows. Unknown-email neutrality preserved (no side effects in emails_outbox/auth_otps).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration2_bug.py",
+    "/app/backend/tests/test_bootstrap_code.py",
+    "/app/test_reports/pytest/iteration3_full.xml",
+    "/app/test_reports/pytest/iteration3_bug.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "fix_owner_and_cleanup.py now correctly repairs BOTH real accounts symmetrically (lines 33-45). Idempotent on re-run.",
+    "admin.bootstrap_code() usable flag uses compare_digest against store.get_active_otp — good security hygiene; returns False for stale/consumed codes as required.",
+    "backend/tests/test_email_fallback.py org cleanup is now scoped to org_email_fb only — prevents the historical unscoped organizations.delete_many({}) regression."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (84/84 full suite; 9/9 iteration2; 5/5 bootstrap_code)", "frontend": "100% (admin/leads UI verified)"},
+  "test_credentials": "OWNER=whymancreates.studio@gmail.com; ADMIN2=vishalmanikonda@icloud.com; CRON_SECRET from /app/backend/.env. Sign-in via request-code -> bootstrap-code?token=CRON_SECRET -> verify. Cookie: dueo_session.",
+  "seed_data_creation": "None. Cleaned rate_limits and stale auth_otps for the two admin emails between flows. Ran fix_owner_and_cleanup.py after the pytest run to strip re-seeded test leads (18 removed, 1 real kept). Real lead vishal@oddenough.in preserved. Both real org docs (org_e2e_5055d9d1 'Alpha Traders' and 5d1f217a-... 'Whyman Creates') present.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All fixes green. Repro of the FIX 2 live check: sign in as OWNER, read code via /api/admin/bootstrap-code (usable=True), POST /api/auth/verify with that code (200), call bootstrap-code again -> same code returned but usable=False. If pytest was just run, remember to `cd /app/backend && python fix_owner_and_cleanup.py` to strip re-seeded test leads before checking /admin/leads UI.",
+  "rca of the issue": "Previously: fix_owner_and_cleanup.py only repaired TARGET (OWNER); PRIMARY (ADMIN2)'s org doc could remain missing after a historical unscoped organizations.delete_many({}) in a test fixture, so ADMIN2 dashboards 404'd org_not_found. Fix: symmetric repair loop at the top of main() iterates over both (PRIMARY, 'Alpha Traders') and (TARGET, 'Whyman Creates'); if a live organization_members row points at a missing org doc, the org is re-inserted. Also test_email_fallback.py cleanup is now scoped to org_email_fb only. Verified: both accounts sign in and hit dashboard 200; script is idempotent."
+}

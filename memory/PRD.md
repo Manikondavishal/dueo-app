@@ -24,6 +24,18 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **2026-09-25 retest green (iteration_3)**: testing agent verified 0 critical /
+  0 minor. Both real accounts sign in and reach the dashboard (200), admin
+  pages 200, `fix_owner_and_cleanup.py` idempotent, `bootstrap-code`
+  `usable` flag correct (true while the OTP is live, false once consumed),
+  security guards intact, lead list shows only the one real lead. Full suite
+  **84 passed** serial. Fixes made after iteration_2: (i) the repair script is
+  now symmetric — it re-creates a missing `organizations` doc for BOTH real
+  accounts whenever a live membership row points at one (this was the
+  CRITICAL 404 `org_not_found` on vishalmanikonda@icloud.com); (ii)
+  `bootstrap-code` now returns `usable`, computed by hashing the extracted
+  code against the live active OTP, so a stale/consumed code is never handed
+  over as if it would work.
 - **2026-09-25 owner account + bootstrap + lead cleanup + test-wipe bug**:
   (a) `whymancreates.studio@gmail.com` is now a real working owner — user set
   active, added to `ADMIN_EMAILS` (so /admin/* works) and given its own org
