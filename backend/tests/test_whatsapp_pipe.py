@@ -40,7 +40,7 @@ async def test_whatsapp_inbound_rejects_bad_signature():
 async def test_whatsapp_inbound_accepts_valid_signature_and_persists():
     url = f"{API}/webhooks/twilio-whatsapp/inbound"
     form = {"MessageSid": "SM_valid_1", "From": "whatsapp:+15551234567",
-            "To": "whatsapp:+17372508034", "Body": "hey there", "NumMedia": "0"}
+            "To": "whatsapp:+14155238886", "Body": "hey there", "NumMedia": "0"}
     sig = _sign(url, form)
     async with httpx.AsyncClient(timeout=15) as c:
         r = await c.post(url, data=form, headers={"X-Twilio-Signature": sig})
@@ -60,7 +60,7 @@ async def test_whatsapp_inbound_accepts_valid_signature_and_persists():
 async def test_whatsapp_inbound_is_idempotent_under_retries():
     url = f"{API}/webhooks/twilio-whatsapp/inbound"
     form = {"MessageSid": "SM_dup_1", "From": "whatsapp:+15551234567",
-            "To": "whatsapp:+17372508034", "Body": "one", "NumMedia": "0"}
+            "To": "whatsapp:+14155238886", "Body": "one", "NumMedia": "0"}
     sig = _sign(url, form)
     async with httpx.AsyncClient(timeout=15) as c:
         r1 = await c.post(url, data=form, headers={"X-Twilio-Signature": sig})
@@ -83,7 +83,7 @@ async def test_whatsapp_inbound_is_idempotent_under_retries():
 async def test_whatsapp_status_callback_updates_row():
     url_in = f"{API}/webhooks/twilio-whatsapp/inbound"
     form_in = {"MessageSid": "SM_status_1", "From": "whatsapp:+15551234567",
-               "To": "whatsapp:+17372508034", "Body": "hi", "NumMedia": "0"}
+               "To": "whatsapp:+14155238886", "Body": "hi", "NumMedia": "0"}
     async with httpx.AsyncClient(timeout=15) as c:
         await c.post(url_in, data=form_in, headers={"X-Twilio-Signature": _sign(url_in, form_in)})
 
