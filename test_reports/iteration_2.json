@@ -1,0 +1,42 @@
+{
+  "summary": "Verified the reported bug fix end-to-end for whymancreates.studio@gmail.com and the widened bootstrap-code route. 8/9 backend tests pass in /app/backend/tests/test_iteration2_bug.py. Frontend admin/leads UI verified: exactly ONE real lead (vishal@oddenough.in, status 'new') with Approve/Hold/Reject; Users and Outbox tabs render; no @example.com rows. One HARD failure surfaces the exact regression the review request warned about: vishalmanikonda@icloud.com now returns HTTP 404 'org_not_found' on GET /api/app/dashboard because its organization_members.org_id ('org_e2e_5055d9d1') has no matching doc in the 'organizations' collection. The ops script fix_owner_and_cleanup.py only repairs the TARGET (whymancreates.studio@gmail.com); it never re-creates PRIMARY (vishalmanikonda@icloud.com) org doc, so the second real admin is stranded after the historical org-wipe.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/app/dashboard (as vishalmanikonda@icloud.com)",
+        "issue": "Returns 404 {\"detail\":\"org_not_found\"}. organization_members row exists (user_id=99fea86c-949b-4bd3-8ba3-c4c7eb4090c7, org_id='org_e2e_5055d9d1', status='active') but there is NO doc in the 'organizations' collection with id='org_e2e_5055d9d1'. This is the exact org-wipe regression the review request called out. The ops script fix_owner_and_cleanup.py only repairs 'whymancreates.studio@gmail.com' — it never recreates the PRIMARY admin's org, so vishalmanikonda@icloud.com stays broken across runs.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration2_bug.py",
+    "/app/test_reports/pytest/iteration2_results.xml"
+  ],
+  "action_items": [
+    "Repair vishalmanikonda@icloud.com's org: either re-insert an 'organizations' doc with id='org_e2e_5055d9d1' (display_name 'Alpha Traders' per /app/memory/test_credentials.md), OR extend backend/fix_owner_and_cleanup.py to idempotently upsert the PRIMARY's org doc the same way it does for TARGET (see lines 40-73 in that file — the primary_mem.org_id lookup should be followed by an organizations upsert).",
+    "Optional hardening: audit backend/tests fixtures for any that call db.organizations.delete_many({}) with an unscoped filter. The task notes claim this was scoped to org_email_fb but the state on disk suggests at least one historical wipe still slipped through. Consider adding a guard in tests that refuses to delete real-account org_ids (org_e2e_5055d9d1 and the TARGET's org)."
+  ],
+  "critical_code_review_comments": [
+    "backend/fix_owner_and_cleanup.py: only repairs TARGET (whymancreates.studio@gmail.com). It reads primary_mem.org_id (line 46) purely to decide whether TARGET can share a seat, but never checks that the primary's org DOCUMENT exists. If that doc is missing (as it is now), PRIMARY is silently left broken while the script prints success. Add a symmetric organizations upsert for PRIMARY.",
+    "backend/app/deps.py current_context(): the split between 403 no_organization and 404 org_not_found is correct, but there is no self-healing branch even for admin users. Given the observed state, consider one-time auto-repair for accounts in ADMIN_EMAILS (create the missing org doc from organization_members.org_id) so admins are never locked out by orphaned membership rows.",
+    "backend/app/routers/admin.py bootstrap_code: widened correctly (CRON_SECRET-only). But note it returns the LATEST auth_otps row even if it was already consumed (consumed_at set) or expired. When email rate-limiting kicks in on the neutral request-code (email_count>5), no NEW code is created and bootstrap-code happily returns a stale/consumed code, which then fails verify with 400 invalid_code. Consider filtering bootstrap-code to active=True, consumed_at=None, and not-expired to avoid confusing operators.",
+    "OTP rate limit for a single email is 5/hour. Fine for prod but very easy to trip during CI/testing. Adding a dev/test 'reset otp rate limits' admin endpoint (guarded by CRON_SECRET) would make automated flows more robust."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration2_bug.py"
+  ],
+  "success_rate": {"backend": "89% (8/9)", "frontend": "100% (admin/leads UI verified)"},
+  "test_credentials": "OWNER=whymancreates.studio@gmail.com; ADMIN2=vishalmanikonda@icloud.com; CRON_SECRET read from /app/backend/.env. Sign-in: POST /api/auth/request-code -> GET /api/admin/bootstrap-code?email=&token=CRON_SECRET -> POST /api/auth/verify. Cookie: dueo_session.",
+  "seed_data_creation": "None. Cleaned rate_limits (kind in [otp_email, otp_ip, verify_ip]) and stale auth_otps for the two admin emails between tests. Did NOT run fix_owner_and_cleanup.py so the real orphaned-org state is preserved for the main agent to reproduce.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/test_iteration2_bug.py -v -o addopts='' -p no:randomly. The single expected failure is TestOwnerSignInAndDashboard::test_admin2_regression_dashboard_200 while vishalmanikonda@icloud.com's org doc is missing. Verify state with: python -c \"from pymongo import MongoClient; db=MongoClient('mongodb://localhost:27017')['test_database']; print(db.organizations.find_one({'id':'org_e2e_5055d9d1'}))\" — should print None until repaired. After the main agent repairs it (upsert into 'organizations' with id='org_e2e_5055d9d1', display_name 'Alpha Traders'), re-run the same pytest and it should be 9/9. Real lead vishal@oddenough.in (waitlist_leads collection) is present and must not be deleted. Bootstrap-code, OTP hygiene, unknown-email neutrality, leads cleanup, and admin pages 200 are all green.",
+  "rca of the issue": "Both real admin accounts had their organization docs wiped by a historical unscoped organizations.delete_many({}) in a test fixture. The current ops script fix_owner_and_cleanup.py (lines 25-73) rebuilds the org for TARGET=whymancreates.studio@gmail.com but never rebuilds the org for PRIMARY=vishalmanikonda@icloud.com — it only reads PRIMARY's org_id to decide whether TARGET can share a seat. Result: whymancreates.studio@gmail.com works; vishalmanikonda@icloud.com signs in successfully (200 on /api/auth/verify) but every subsequent authed request hits deps.current_context, which finds the membership row and 404s org_not_found because organizations.find_one({'id':'org_e2e_5055d9d1'}) returns None. Reproduction: (1) sign in as vishalmanikonda@icloud.com via request-code -> bootstrap-code -> verify; (2) GET /api/app/dashboard -> 404 org_not_found. Mitigation: db.organizations.insert_one({'_id':'org_e2e_5055d9d1','id':'org_e2e_5055d9d1','display_name':'Alpha Traders','created_at': iso()}) — and extend fix_owner_and_cleanup.py to do the same idempotently for PRIMARY."
+}

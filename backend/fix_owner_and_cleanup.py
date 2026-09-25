@@ -26,6 +26,24 @@ async def main():
     db = AsyncIOMotorClient(settings.MONGO_URL)[settings.DB_NAME]
 
     # --- 1. owner account -----------------------------------------------
+    # Repair the PRIMARY admin first: a historical unscoped
+    # `organizations.delete_many({})` in a test fixture orphaned membership
+    # rows, leaving real accounts at 404 `org_not_found`. Re-create any org
+    # doc that a live membership still points at.
+    for email, fallback_name in ((PRIMARY, "Alpha Traders"), (TARGET, "Whyman Creates")):
+        u = await db.users.find_one({"email": email})
+        if not u:
+            continue
+        mem = await db.organization_members.find_one({"user_id": u["id"]})
+        if not mem:
+            continue
+        if not await db.organizations.find_one({"_id": mem["org_id"]}):
+            await db.organizations.insert_one({
+                "_id": mem["org_id"], "id": mem["org_id"],
+                "display_name": fallback_name, "created_at": iso(),
+            })
+            print(f"org repair: recreated {mem['org_id']} for {email}")
+
     user = await db.users.find_one({"email": TARGET})
     if not user:
         user = {"_id": new_id(), "id": None, "email": TARGET, "full_name": "Whyman Creates",

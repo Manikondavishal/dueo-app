@@ -57,6 +57,16 @@ async def test_bootstrap_rejects_bad_token():
 
 
 @pytest.mark.asyncio
+async def test_bootstrap_flags_stale_code_as_unusable():
+    """A code in the outbox that is no longer the live OTP must be reported
+    `usable=False` rather than handed over as if it would work."""
+    await _seed_code(NON_ADMIN, "717171")
+    out = await bootstrap_code(email=NON_ADMIN, token=settings.CRON_SECRET)
+    assert out["code"] == "717171"
+    assert out["usable"] is False  # no active auth_otps row for this address
+
+
+@pytest.mark.asyncio
 async def test_bootstrap_404_when_no_code_for_address():
     with pytest.raises(HTTPException) as e:
         await bootstrap_code(email="nobody_boot@oddenough.in", token=settings.CRON_SECRET)

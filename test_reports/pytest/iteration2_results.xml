@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="9" time="8.327" timestamp="2026-09-25T10:48:14.133974+00:00" hostname="agent-env-b10f83e0-d64c-4a1e-b5f4-526234e00fc8"><testcase classname="tests.test_iteration2_bug.TestBootstrapCode" name="test_wrong_token_401" time="0.176" /><testcase classname="tests.test_iteration2_bug.TestBootstrapCode" name="test_no_code_yet_404" time="0.134" /><testcase classname="tests.test_iteration2_bug.TestBootstrapCode" name="test_widened_works_for_non_admin" time="1.004" /><testcase classname="tests.test_iteration2_bug.TestOwnerSignInAndDashboard" name="test_owner_e2e_dashboard_200" time="0.999" /><testcase classname="tests.test_iteration2_bug.TestOwnerSignInAndDashboard" name="test_owner_admin_pages_200" time="1.189" /><testcase classname="tests.test_iteration2_bug.TestOwnerSignInAndDashboard" name="test_admin2_regression_dashboard_200" time="0.986"><failure message="AssertionError: vishalmanikonda@icloud.com dashboard -&gt; 404: {&quot;detail&quot;:&quot;org_not_found&quot;}&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">self = &lt;test_iteration2_bug.TestOwnerSignInAndDashboard object at 0xfaa3abdab9d0&gt;
+
+    def test_admin2_regression_dashboard_200(self):
+        s, _ = _sign_in(ADMIN2)
+        r = s.get(f"{BASE}/api/app/dashboard", timeout=15)
+&gt;       assert r.status_code == 200, f"{ADMIN2} dashboard -&gt; {r.status_code}: {r.text}"
+E       AssertionError: vishalmanikonda@icloud.com dashboard -&gt; 404: {"detail":"org_not_found"}
+E       assert 404 == 200
+E        +  where 404 = &lt;Response [404]&gt;.status_code
+
+tests/test_iteration2_bug.py:139: AssertionError</failure></testcase><testcase classname="tests.test_iteration2_bug.TestNeutralRequestCode" name="test_unknown_email_neutral_and_no_side_effects" time="0.444" /><testcase classname="tests.test_iteration2_bug.TestOtpHygiene" name="test_new_code_invalidates_old_and_no_reuse" time="2.345" /><testcase classname="tests.test_iteration2_bug.TestLeadsCleanup" name="test_admin_leads_no_test_rows" time="0.962" /></testsuite></testsuites>

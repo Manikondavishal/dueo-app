@@ -8,7 +8,7 @@ from ..deps import require_admin
 from ..models import LeadActionIn
 from ..repositories import store
 from ..services import audit, leads, org
-from ..util import norm_email
+from ..util import compare_digest, hash_secret, norm_email
 
 router = APIRouter(prefix="/api/admin")
 
@@ -26,7 +26,19 @@ async def bootstrap_code(email: str, token: str):
     if not doc:
         raise HTTPException(status_code=404, detail="no_code")
     m = re.search(r"<strong>(\d{6})</strong>", doc.get("html", "") or "")
-    return {"code": m.group(1) if m else None, "created_at": doc.get("created_at"), "status": doc.get("status")}
+    code = m.group(1) if m else None
+    # Flag whether this code is still the live one. If the per-email OTP rate
+    # limit blocked a new send, the newest outbox row can be a stale/consumed
+    # code that then fails verify with 400 — say so instead of handing over a
+    # code that cannot work.
+    active = await store.get_active_otp(norm_email(email))
+    usable = bool(code and active and compare_digest(active["digest"], hash_secret(code)))
+    return {
+        "code": code,
+        "created_at": doc.get("created_at"),
+        "status": doc.get("status"),
+        "usable": usable,
+    }
 
 
 @router.get("/leads")
