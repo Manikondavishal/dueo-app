@@ -1,6 +1,7 @@
-"""Email provider. Sends via Emergent-managed Resend when configured, and always
-records a copy in the emails_outbox collection so every flow is testable and
-nothing sensitive is lost. Plain transactional emails only (no marketing)."""
+"""Email provider. Sends directly through Resend using OUR OWN `RESEND_API_KEY`
+(the Emergent-managed `EMERGENT_EMAIL_KEY` pipe is retired), and always records
+a copy in the emails_outbox collection so every flow is testable and nothing
+sensitive is lost. Plain transactional emails only (no marketing)."""
 import ipaddress
 import logging
 import re
@@ -16,7 +17,9 @@ from ..util import iso, new_id
 
 logger = logging.getLogger("dueo.email")
 
-EMAIL_BASE_URL = "https://integrations.emergentagent.com"  # constant, survives deploy
+RESEND_SEND_URL = "https://api.resend.com/emails"
+# Resend rejects direct HTTP calls without a User-Agent (403).
+RESEND_USER_AGENT = "dueo-api/1.0"
 
 _SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "goo.gl", "rebrand.ly")
 _HOSTISH = re.compile(r"\b(?:https?://)?((?:[a-z0-9-]+\.)+[a-z]{2,})", re.I)
@@ -83,17 +86,36 @@ def _assert_safe_email(subject: str, html: str) -> None:
                 raise ValueError(f"Anchor text {m.group(1)!r} != link host {real!r}")
 
 
+def _sender() -> str:
+    """Resend wants an RFC-5322 `From`. Display name + the configured address."""
+    name = (settings.EMAIL_FROM_NAME or "").strip()
+    addr = settings.RESEND_FROM
+    return f"{name} <{addr}>" if name else addr
+
+
 async def _resend_send(to: str, subject: str, html: str) -> str | None:
-    payload = {"to": [to], "subject": subject, "html": html, "from_name": settings.EMAIL_FROM_NAME}
+    payload: dict = {
+        "from": _sender(),
+        "to": [to],
+        "subject": subject,
+        "html": html,
+    }
     if settings.EMAIL_REPLY_TO:
-        payload["contact_email"] = settings.EMAIL_REPLY_TO
+        payload["reply_to"] = settings.EMAIL_REPLY_TO
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(
-            f"{EMAIL_BASE_URL}/api/v1/email/send",
-            headers={"X-Email-Key": settings.EMERGENT_EMAIL_KEY},
+            RESEND_SEND_URL,
+            headers={
+                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                "Content-Type": "application/json",
+                "User-Agent": RESEND_USER_AGENT,
+            },
             json=payload,
         )
-    resp.raise_for_status()
+    if resp.status_code >= 400:
+        # Body carries Resend's error name/message (never the key) — keep it so
+        # a 403 "resend.dev can only mail the account owner" is diagnosable.
+        raise RuntimeError(f"resend {resp.status_code}: {resp.text[:300]}")
     return resp.json().get("id")
 
 
@@ -102,7 +124,7 @@ async def send_email(*, to: str, subject: str, html: str, kind: str = "generic")
     _assert_safe_email(subject, html)
     provider = settings.EMAIL_PROVIDER
     status, provider_id, error = "queued", None, None
-    if provider == "resend" and settings.EMERGENT_EMAIL_KEY:
+    if provider == "resend" and settings.RESEND_API_KEY:
         try:
             provider_id = await _resend_send(to, subject, html)
             status = "sent"

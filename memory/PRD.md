@@ -24,6 +24,26 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **2026-09-24 Email moved to OUR OWN Resend key**: `providers/email.py` now
+  POSTs directly to `https://api.resend.com/emails` with
+  `Authorization: Bearer $RESEND_API_KEY`, `User-Agent: dueo-api/1.0` (Resend
+  403s direct calls without one) and `from = "Dueo <$RESEND_FROM>"`
+  (`RESEND_FROM=onboarding@resend.dev`). The Emergent-managed pipe
+  (`X-Email-Key` → `integrations.emergentagent.com/api/v1/email/send`) is
+  fully removed from code; `EMERGENT_EMAIL_KEY` remains in `.env` only as a
+  dead legacy value. Live switch happens on
+  `EMAIL_PROVIDER=resend` + a non-empty `RESEND_API_KEY`; with the key blank
+  the provider records `status=outbox` and makes NO network call, so nothing
+  errors while the secret is unfilled. Non-2xx is captured as
+  `status=failed` with the Resend error body preserved — the send never
+  raises into OTP/invite/follow-up flows. This covers all three email kinds
+  (login_code, invite, follow_up) since they all route through `send_email`.
+  New `tests/test_email_resend.py` (4 cases: exact request shape + id capture,
+  403 resend.dev restriction recorded as failed, blank key = outbox-only with
+  no network, retired-pipe guard). Full suite: **70 passed** serial.
+  **KNOWN LIMIT**: `onboarding@resend.dev` can only deliver to the Resend
+  account owner's own address — any other recipient gets HTTP 403. A verified
+  domain in Resend is required before real client follow-ups can land.
 - **2026-09-24 Twilio sandbox number changed**: `ORG_WHATSAPP_FROM` moved from
   `whatsapp:+14155238886` to `whatsapp:+17372508034` in `backend/.env` and
   `.env.example`; backend restarted and `settings.ORG_WHATSAPP_FROM` verified

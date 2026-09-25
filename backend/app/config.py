@@ -25,7 +25,9 @@ class Settings(BaseSettings):
     EMAIL_PROVIDER: str = "outbox"  # "resend" | "outbox"
     EMAIL_API_KEY: str = ""
     EMAIL_FROM: str = "no-reply@dueo.app"
-    EMERGENT_EMAIL_KEY: str = ""
+    EMERGENT_EMAIL_KEY: str = ""  # legacy Emergent-managed pipe, no longer used
+    RESEND_API_KEY: str = ""      # own Resend key — the only live email credential
+    RESEND_FROM: str = "onboarding@resend.dev"
     EMAIL_FROM_NAME: str = "Dueo"
     EMAIL_REPLY_TO: str = ""
     EMERGENT_LLM_KEY: str = ""
