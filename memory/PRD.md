@@ -24,6 +24,36 @@ Build Phase 0 (infra proof) then Phase 1 (invite→login→setup→Today shell),
 - **Platform admin** (ADMIN_EMAILS): reviews leads (approve/hold/reject/resend), manages users, reads outbox.
 
 ## Ops notes
+- **2026-09-25 owner account + bootstrap + lead cleanup + test-wipe bug**:
+  (a) `whymancreates.studio@gmail.com` is now a real working owner — user set
+  active, added to `ADMIN_EMAILS` (so /admin/* works) and given its own org
+  "Whyman Creates" (the primary org was full at MAX_MEMBERS_PER_ORG=1).
+  Live proof: request-code → bootstrap → verify 200 → `/api/app/dashboard`
+  200 with empty counts, `/api/admin/leads` 200.
+  (b) `GET /api/admin/bootstrap-code` no longer requires the address to be in
+  ADMIN_EMAILS — any address, still guarded ONLY by `CRON_SECRET`
+  (401 on bad token, 404 when no code exists). This is the workaround while
+  `onboarding@resend.dev` mail lands in Gmail spam. New
+  `tests/test_bootstrap_code.py` (4 cases).
+  (c) Lead cleanup: `backend/fix_owner_and_cleanup.py` (idempotent) removes
+  only obvious test rows (@example.com/@x.com/test-prefixed) — 485 → 1 real
+  lead (`vishal@oddenough.in`, status `new`, never approved). Re-run it after
+  any pytest run, which re-seeds test leads.
+  (d) **Real bug found + fixed**: `tests/test_email_fallback.py` was wiping the
+  ENTIRE `organizations` collection, which silently destroyed real signed-up
+  accounts in the shared preview DB and left them 404 `org_not_found` on
+  every request (this is what broke the earlier admin session twice). The
+  fixture now deletes only its own `org_email_fb`. Verified: after a full
+  suite run the "Whyman Creates" org survives and the dashboard still
+  returns 200.
+  (e) **WhatsApp is NOT working end to end**: a real send to +91 7013248755
+  from the new sandbox number returned Twilio `422 "No Twilio trial phone
+  number is assigned for messaging to this destination number. Please add
+  the 'to' number as a verified recipient."` The Twilio Messages list is
+  EMPTY and `whatsapp_messages` has 0 rows, so no join message ever reached
+  the sandbox. The phone must send the sandbox join phrase to
+  +1 737 250 8034 before any send or inbound webhook can work.
+  Full suite: **74 passed** serial.
 - **2026-09-25 LIVE EMAIL PROOF — real delivery confirmed**: own Resend key
   written to `backend/.env` (`RESEND_API_KEY`, 36 chars, `re_` prefix),
   backend restarted. Ran `backend/live_email_proof.py`, which refuses to run

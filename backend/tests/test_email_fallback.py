@@ -23,9 +23,12 @@ async def _wipe():
     c = AsyncIOMotorClient(settings.MONGO_URL)
     db = c[settings.DB_NAME]
     for k in ("payment_hubs", "payment_hub_contacts", "follow_up_plans",
-              "follow_up_messages", "whatsapp_messages", "emails_outbox",
-              "organizations"):
+              "follow_up_messages", "whatsapp_messages", "emails_outbox"):
         await db[k].delete_many({})
+    # Scope org cleanup to THIS test's org — a blanket wipe of `organizations`
+    # destroys real signed-up accounts in the shared preview DB and leaves
+    # them with a 404 `org_not_found` on every request.
+    await db.organizations.delete_many({"_id": ORG})
     yield
     c.close()
 

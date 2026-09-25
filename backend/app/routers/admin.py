@@ -15,14 +15,13 @@ router = APIRouter(prefix="/api/admin")
 
 @router.get("/bootstrap-code")
 async def bootstrap_code(email: str, token: str):
-    """Emergency admin sign-in helper. Returns the latest sign-in code emitted for
-    an admin email, when the correct CRON_SECRET token is supplied. Use when the
-    email provider is down. Not linked from the UI; must be called directly."""
+    """Emergency sign-in helper. Returns the latest sign-in code emitted for
+    ANY address, when the correct CRON_SECRET token is supplied. Use while the
+    email sender is unverified and codes land in Gmail spam. Not linked from
+    the UI; must be called directly."""
     if token != settings.CRON_SECRET:
         raise HTTPException(status_code=401, detail="invalid_token")
     norm = norm_email(email)
-    if norm not in settings.admin_emails:
-        raise HTTPException(status_code=403, detail="not_admin")
     doc = await store.latest_login_email(norm)
     if not doc:
         raise HTTPException(status_code=404, detail="no_code")
